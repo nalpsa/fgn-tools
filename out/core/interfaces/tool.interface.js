@@ -1,12 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ToolCategory = void 0;
+/**
+ * Categorias disponíveis para organização das ferramentas
+ */
 var ToolCategory;
 (function (ToolCategory) {
-    ToolCategory["CODE"] = "code";
-    ToolCategory["TEXT"] = "text";
-    ToolCategory["FILE"] = "file";
-    ToolCategory["FORMAT"] = "format";
-    ToolCategory["OTHER"] = "other";
+    ToolCategory["CODE"] = "code-tools";
+    ToolCategory["TEXT"] = "text-tools";
+    ToolCategory["FILE"] = "file-tools";
+    ToolCategory["FORMATTERS"] = "formatters";
+    ToolCategory["OTHER"] = "other-tools";
 })(ToolCategory || (exports.ToolCategory = ToolCategory = {}));
 //# sourceMappingURL=tool.interface.js.map

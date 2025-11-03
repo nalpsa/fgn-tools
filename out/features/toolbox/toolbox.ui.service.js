@@ -33,283 +33,134 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ToolboxUI = void 0;
+exports.ToolboxUIService = void 0;
 const vscode = __importStar(require("vscode"));
-class ToolboxUI {
-    constructor(context) {
-        this.context = context;
-        this.categoryConfigs = this.initializeCategoryConfigs();
+const tool_manager_service_1 = require("../../core/services/tool-manager.service");
+const toolbox_html_template_1 = require("./toolbox.html.template");
+/**
+ * Serviço responsável pela interface visual do dashboard
+ * Princípio da Responsabilidade Única (SRP): gerencia apenas a UI
+ */
+class ToolboxUIService {
+    constructor() {
+        this.toolManager = tool_manager_service_1.ToolManagerService.getInstance();
     }
-    async createDashboardPanel(toolManager) {
-        const panel = vscode.window.createWebviewPanel('fgnToolsDashboard', '🛠️ FGN Tools - Dashboard', vscode.ViewColumn.One, this.getWebviewOptions());
-        panel.webview.html = this.getDashboardHTML(toolManager, panel.webview);
-        this.setupDashboardMessageHandlers(panel, toolManager);
-        return panel;
+    /**
+     * Singleton pattern
+     */
+    static getInstance() {
+        if (!ToolboxUIService.instance) {
+            ToolboxUIService.instance = new ToolboxUIService();
+        }
+        return ToolboxUIService.instance;
     }
-    async createToolModal(tool, toolManager) {
-        const panel = vscode.window.createWebviewPanel(`fgnTool-${tool.id}`, `🛠️ ${tool.name}`, vscode.ViewColumn.Beside, this.getWebviewOptions());
-        panel.webview.html = this.getToolHTML(tool, panel.webview);
-        this.setupToolMessageHandlers(panel, tool, toolManager);
-    }
-    getWebviewOptions() {
-        return {
+    /**
+     * Abre o dashboard de ferramentas
+     */
+    openDashboard() {
+        if (this.panel) {
+            this.panel.reveal(vscode.ViewColumn.One);
+            return;
+        }
+        this.panel = vscode.window.createWebviewPanel('fgnToolbox', '🛠️ FGN Tools - Dashboard', vscode.ViewColumn.One, {
             enableScripts: true,
             retainContextWhenHidden: true,
-            localResourceRoots: [
-                vscode.Uri.joinPath(this.context.extensionUri, 'media'),
-                vscode.Uri.joinPath(this.context.extensionUri, 'out')
-            ]
-        };
-    }
-    getDashboardHTML(toolManager, webview) {
-        const tools = toolManager.getAllTools();
-        const toolsByCategory = this.groupToolsByCategory(tools);
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>🛠️ FGN Tools - Dashboard</title>
-            <style>
-                ${this.getDashboardStyles()}
-            </style>
-        </head>
-        <body>
-            <div class="dashboard">
-                <header class="dashboard-header">
-                    <h1>🛠️ FGN Tools</h1>
-                    <p>Caixa de ferramentas de desenvolvimento</p>
-                </header>
-
-                <div class="tools-grid">
-                    ${this.renderToolsGrid(toolsByCategory)}
-                </div>
-            </div>
-
-            <script>
-                ${this.getDashboardScript()}
-            </script>
-        </body>
-        </html>`;
-    }
-    getToolHTML(tool, webview) {
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>${tool.name}</title>
-            <style>
-                body { 
-                    font-family: var(--vscode-font-family);
-                    padding: 20px;
-                    margin: 0;
-                    background-color: var(--vscode-editor-background);
-                    color: var(--vscode-editor-foreground);
-                }
-                h1 { 
-                    color: var(--vscode-titleBar-activeForeground); 
-                    margin-bottom: 10px;
-                }
-                p {
-                    color: var(--vscode-descriptionForeground);
-                    margin-bottom: 20px;
-                }
-                #tool-content {
-                    margin-top: 20px;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>${tool.icon} ${tool.name}</h1>
-            <p>${tool.description}</p>
-            <div id="tool-content">
-                <!-- Conteúdo específico da ferramenta -->
-                <p>Interface da ferramenta será implementada em breve.</p>
-            </div>
-        </body>
-        </html>`;
-    }
-    groupToolsByCategory(tools) {
-        const grouped = new Map();
-        tools.forEach(tool => {
-            if (!grouped.has(tool.category)) {
-                grouped.set(tool.category, []);
-            }
-            grouped.get(tool.category).push(tool);
+            localResourceRoots: []
         });
-        return grouped;
-    }
-    renderToolsGrid(toolsByCategory) {
-        let html = '';
-        toolsByCategory.forEach((tools, category) => {
-            const categoryConfig = this.getCategoryConfig(category);
-            html += `
-            <div class="category-section">
-                <h2 class="category-title">${categoryConfig.icon} ${categoryConfig.displayName}</h2>
-                <div class="tools-row">
-                    ${tools.map(tool => this.renderToolCard(tool)).join('')}
-                </div>
-            </div>`;
+        this.panel.webview.html = this.getWebviewContent();
+        this.setupMessageListener();
+        this.panel.onDidDispose(() => {
+            this.panel = undefined;
+            console.log('📦 Dashboard closed');
         });
-        return html;
+        console.log('✅ Dashboard opened');
     }
-    renderToolCard(tool) {
-        return `
-        <div class="tool-card" data-tool-id="${tool.id}">
-            <div class="tool-icon">${tool.icon}</div>
-            <div class="tool-info">
-                <h3 class="tool-name">${tool.name}</h3>
-                <p class="tool-description">${tool.description}</p>
-            </div>
-        </div>`;
+    /**
+     * Fecha o dashboard
+     */
+    closeDashboard() {
+        if (this.panel) {
+            this.panel.dispose();
+            this.panel = undefined;
+        }
     }
-    getDashboardStyles() {
-        return `
-        .dashboard { 
-            padding: 20px; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            font-family: var(--vscode-font-family);
+    /**
+     * Atualiza o conteúdo do dashboard
+     */
+    refreshDashboard() {
+        if (this.panel) {
+            this.panel.webview.html = this.getWebviewContent();
         }
-        
-        .dashboard-header { 
-            text-align: center; 
-            margin-bottom: 40px; 
-        }
-        
-        .dashboard-header h1 { 
-            color: var(--vscode-titleBar-activeForeground); 
-            margin: 0; 
-            font-size: 2.5em;
-        }
-        
-        .dashboard-header p { 
-            color: var(--vscode-descriptionForeground); 
-            margin: 5px 0 0 0; 
-            font-size: 1.1em;
-        }
-        
-        .category-section { 
-            margin-bottom: 30px; 
-        }
-        
-        .category-title { 
-            color: var(--vscode-foreground); 
-            border-bottom: 1px solid var(--vscode-input-border);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .tools-row { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        
-        .tool-card {
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            min-height: 80px;
-        }
-        
-        .tool-card:hover {
-            background: var(--vscode-list-hoverBackground);
-            border-color: var(--vscode-focusBorder);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .tool-icon { 
-            font-size: 24px; 
-            margin-bottom: 10px;
-        }
-        
-        .tool-name { 
-            color: var(--vscode-foreground); 
-            margin: 0 0 5px 0;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .tool-description {
-            color: var(--vscode-descriptionForeground);
-            margin: 0;
-            font-size: 12px;
-            line-height: 1.4;
-        }`;
     }
-    getDashboardScript() {
-        return `
-        const vscode = acquireVsCodeApi();
-        
-        function initializeEventListeners() {
-            document.querySelectorAll('.tool-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const toolId = card.getAttribute('data-tool-id');
-                    openTool(toolId);
-                });
-            });
-        }
-        
-        function openTool(toolId) {
-            vscode.postMessage({
-                command: 'openTool',
-                toolId: toolId
-            });
-        }
-        
-        window.addEventListener('load', initializeEventListeners);
-        
-        window.addEventListener('message', (event) => {
-            const message = event.data;
-            // Handle messages from extension
-        });`;
-    }
-    setupDashboardMessageHandlers(panel, toolManager) {
-        panel.webview.onDidReceiveMessage(async (message) => {
+    /**
+     * Configura o listener de mensagens da webview
+     */
+    setupMessageListener() {
+        if (!this.panel)
+            return;
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            console.log('📨 Message received:', message.command);
             switch (message.command) {
-                case 'openTool':
-                    const tool = toolManager.getTool(message.toolId);
-                    if (tool) {
-                        await this.createToolModal(tool, toolManager);
-                    }
-                    else {
-                        vscode.window.showErrorMessage(`Ferramenta não encontrada: ${message.toolId}`);
-                    }
+                case 'executeTool':
+                    await this.handleExecuteTool(message.toolId);
                     break;
-            }
-        });
-    }
-    setupToolMessageHandlers(panel, tool, toolManager) {
-        // Handlers específicos para cada ferramenta
-        // Serão implementados conforme as ferramentas forem criadas
-        panel.webview.onDidReceiveMessage(async (message) => {
-            switch (message.command) {
-                // Adicionar handlers específicos para cada ferramenta aqui
+                case 'getDashboardData':
+                    await this.handleGetDashboardData();
+                    break;
+                case 'refreshDashboard':
+                    this.refreshDashboard();
+                    break;
                 default:
-                    console.log('Mensagem não tratada:', message);
-                    break;
+                    console.warn('Unknown command:', message.command);
             }
         });
     }
-    initializeCategoryConfigs() {
-        const configs = new Map();
-        configs.set('code', { icon: '💻', displayName: 'Ferramentas de Código' });
-        configs.set('text', { icon: '📝', displayName: 'Ferramentas de Texto' });
-        configs.set('file', { icon: '📁', displayName: 'Ferramentas de Arquivo' });
-        configs.set('format', { icon: '🎨', displayName: 'Formatadores' });
-        configs.set('other', { icon: '🔧', displayName: 'Outras Ferramentas' });
-        return configs;
+    /**
+     * Manipula a execução de uma ferramenta
+     */
+    async handleExecuteTool(toolId) {
+        try {
+            await this.toolManager.executeTool(toolId);
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Error: ${errorMessage}`);
+        }
     }
-    getCategoryConfig(category) {
-        return this.categoryConfigs.get(category) || { icon: '🔧', displayName: category };
+    /**
+     * Envia dados do dashboard para a webview
+     */
+    async handleGetDashboardData() {
+        if (!this.panel)
+            return;
+        const toolsGrouped = this.toolManager.getToolsGroupedByCategory();
+        const categories = this.toolManager.getAllCategoryMetadata();
+        const dashboardData = {
+            categories: categories,
+            tools: Array.from(toolsGrouped.entries()).map(([category, tools]) => ({
+                category,
+                tools: tools.map(tool => ({
+                    id: tool.id,
+                    name: tool.name,
+                    description: tool.description,
+                    icon: tool.icon,
+                    category: tool.category
+                }))
+            }))
+        };
+        this.panel.webview.postMessage({
+            command: 'dashboardData',
+            data: dashboardData
+        });
+    }
+    /**
+     * Gera o HTML do dashboard
+     */
+    getWebviewContent() {
+        const toolsGrouped = this.toolManager.getToolsGroupedByCategory();
+        const categories = this.toolManager.getAllCategoryMetadata();
+        return (0, toolbox_html_template_1.getToolboxHtmlTemplate)(categories, toolsGrouped);
     }
 }
-exports.ToolboxUI = ToolboxUI;
+exports.ToolboxUIService = ToolboxUIService;
 //# sourceMappingURL=toolbox.ui.service.js.map

@@ -1,12 +1,37 @@
 {
-  "name": "fgn-line-adjust",
-  "displayName": "FGN Line Adjust",
-  "description": "Remove linhas vazias duplicadas com interface visual",
-  "version": "0.0.1",
+  "name": "fgn-tools",
+  "displayName": "FGN Tools",
+  "description": "Caixa de ferramentas completa para desenvolvimento - Manipulação de código, texto, arquivos e muito mais",
+  "version": "1.0.0",
   "publisher": "fabio",
+  "author": {
+    "name": "Fabio",
+    "email": "fabio@example.com"
+  },
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabio/fgn-tools"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
+  "categories": [
+    "Other",
+    "Formatters",
+    "Linters"
+  ],
+  "keywords": [
+    "tools",
+    "utilities",
+    "code",
+    "text",
+    "file",
+    "formatter",
+    "productivity",
+    "developer-tools"
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -14,21 +39,90 @@
   "contributes": {
     "commands": [
       {
-        "command": "ajustarLinhas.iniciar",
-        "title": "Ajustar Linhas"
+        "command": "fgnTools.openDashboard",
+        "title": "FGN Tools: Open Dashboard",
+        "icon": "$(tools)"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "fgnTools.openDashboard",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "fgnTools.openDashboard",
+          "when": "true"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "fgnTools.openDashboard",
+          "group": "navigation",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FGN Tools",
+      "properties": {
+        "fgnTools.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar ícone do FGN Tools na barra de status"
+        },
+        "fgnTools.showWelcomeMessage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostrar mensagem de boas-vindas na primeira inicialização"
+        },
+        "fgnTools.enabledCategories": {
+          "type": "array",
+          "default": [
+            "code-tools",
+            "text-tools",
+            "file-tools",
+            "formatters",
+            "other-tools"
+          ],
+          "description": "Categorias de ferramentas habilitadas",
+          "items": {
+            "type": "string",
+            "enum": [
+              "code-tools",
+              "text-tools",
+              "file-tools",
+              "formatters",
+              "other-tools"
+            ]
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package"
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
     "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
     "typescript": "^5.3.0",
+    "@vscode/test-electron": "^2.3.0",
     "vsce": "^2.15.0"
-  }
+  },
+  "dependencies": {}
 }

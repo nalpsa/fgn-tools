@@ -1,39 +1,58 @@
+/**
+ * Interface base para todas as ferramentas da extensão
+ * Seguindo o Princípio da Segregação de Interface (ISP) do SOLID
+ */
 export interface ITool {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    category: ToolCategory;
-    execute(input: any): Promise<ToolResult>;
+    /**
+     * Identificador único da ferramenta
+     */
+    readonly id: string;
+
+    /**
+     * Nome amigável da ferramenta
+     */
+    readonly name: string;
+
+    /**
+     * Descrição breve da funcionalidade
+     */
+    readonly description: string;
+
+    /**
+     * Ícone da ferramenta (usando VS Code Codicons)
+     * @see https://microsoft.github.io/vscode-codicons/dist/codicon.html
+     */
+    readonly icon: string;
+
+    /**
+     * Categoria da ferramenta
+     */
+    readonly category: ToolCategory;
+
+    /**
+     * Ativa e executa a ferramenta
+     * Princípio da Responsabilidade Única (SRP): cada ferramenta gerencia sua própria ativação
+     */
+    activate(): Promise<void>;
 }
 
-export interface ToolResult {
-    success: boolean;
-    output?: any;
-    error?: string;
-    stats?: { 
-        filesProcessed?: number; 
-        linesChanged?: number;
-        charactersProcessed?: number;
-    };
-}
-
+/**
+ * Categorias disponíveis para organização das ferramentas
+ */
 export enum ToolCategory {
-    CODE = 'code',
-    TEXT = 'text', 
-    FILE = 'file',
-    FORMAT = 'format',
-    OTHER = 'other'
+    CODE = 'code-tools',
+    TEXT = 'text-tools',
+    FILE = 'file-tools',
+    FORMATTERS = 'formatters',
+    OTHER = 'other-tools'
 }
 
-export interface FileSelectionInput {
-    selections: FileSelection[];
-    workspacePath: string;
-}
-
-export interface FileSelection {
+/**
+ * Metadados de categoria para exibição no dashboard
+ */
+export interface ICategoryMetadata {
+    id: ToolCategory;
     name: string;
-    path: string;
-    type: 'file' | 'folder';
-    selected: boolean;
+    icon: string;
+    description: string;
 }
