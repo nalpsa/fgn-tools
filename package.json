@@ -1,0 +1,34 @@
+{
+  "name": "fgn-line-adjust",
+  "displayName": "FGN Line Adjust",
+  "description": "Remove linhas vazias duplicadas com interface visual",
+  "version": "0.0.1",
+  "publisher": "fabio",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ajustarLinhas.iniciar",
+        "title": "Ajustar Linhas"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0",
+    "vsce": "^2.15.0"
+  }
+}
