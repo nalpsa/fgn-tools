@@ -43,8 +43,8 @@ const remover_todas_linhas_vazias_tool_1 = require("./tools/file-tools/remover-t
 // Ferramentas de Arquivo
 const ajustar_linhas_tool_1 = require("./tools/file-tools/ajustar-linhas.tool");
 // Ferramentas de Texto
-const transformador_case_tool_1 = require("./tools/text-tools/transformador-case.tool");
 const contador_texto_tool_1 = require("./tools/text-tools/contador-texto.tool");
+const transformador_case_tool_1 = require("./tools/text-tools/transformador-case.tool");
 // Ferramentas de Código
 const analisador_complexidade_tool_1 = require("./tools/code-tools/analisador-complexidade.tool");
 // Formatadores
@@ -57,7 +57,7 @@ function activate(context) {
     console.log('🚀 FGN Tools está sendo ativada...');
     // Inicializa os serviços principais
     const toolManager = tool_manager_service_1.ToolManagerService.getInstance();
-    const toolboxUI = toolbox_ui_service_1.ToolboxUIService.getInstance();
+    const toolboxUI = toolbox_ui_service_1.ToolboxUIService.getInstance(context);
     // Registra todas as ferramentas disponíveis
     registerAllTools(toolManager);
     // Registra o comando para abrir o dashboard
@@ -88,7 +88,7 @@ function registerAllTools(toolManager) {
     const tools = [
         // Ferramentas de Arquivo
         new ajustar_linhas_tool_1.AjustarLinhasTool(),
-        new remover_todas_linhas_vazias_tool_1.RemoverTodasLinhasVaziasTool(),
+        new remover_todas_linhas_vazias_tool_1.RemoveAllEmptyLinesTool(),
         // Ferramentas de Texto
         new transformador_case_tool_1.TransformadorCaseTool(),
         new contador_texto_tool_1.ContadorTextoTool(),

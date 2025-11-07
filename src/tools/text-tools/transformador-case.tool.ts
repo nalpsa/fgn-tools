@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ITool, ToolCategory } from '../../core/interfaces/tool.interface';
+import { ITool, ToolCategory, ToolResult } from '../../core/interfaces/tool.interface';
 
 /**
  * Ferramenta para converter texto entre diferentes casos
@@ -9,14 +9,66 @@ export class TransformadorCaseTool implements ITool {
     public readonly id = 'transformador-case';
     public readonly name = 'Transformador de Case';
     public readonly description = 'Converte texto entre camelCase, snake_case, kebab-case e outros';
-    public readonly icon = 'symbol-text';
+    public readonly icon = '🔄';
     public readonly category = ToolCategory.TEXT;
 
     private panel: vscode.WebviewPanel | undefined;
 
-    public async activate(): Promise<void> {
-        console.log('🎯 Ativando ferramenta: Transformador de Case');
-        this.openUI();
+    async execute(input: any): Promise<ToolResult> {
+        try {
+            let text = '';
+            let caseType = 'camelCase';
+            
+            if (input && input.text) {
+                text = input.text;
+                caseType = input.caseType || 'camelCase';
+            } else {
+                // Tentar pegar seleção do editor
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const selection = editor.selection;
+                    if (!selection.isEmpty) {
+                        text = editor.document.getText(selection);
+                    } else {
+                        text = editor.document.getText();
+                    }
+                } else {
+                    // Abrir a UI se não há texto disponível
+                    this.openUI();
+                    return {
+                        success: true,
+                        output: 'UI aberta para transformação de texto'
+                    };
+                }
+            }
+            
+            const resultado = this.transformText(text, caseType);
+            
+            // Aplicar resultado se veio do editor
+            const editor = vscode.window.activeTextEditor;
+            if (editor && input && !input.text) {
+                const selection = editor.selection;
+                if (!selection.isEmpty) {
+                    await editor.edit(editBuilder => {
+                        editBuilder.replace(selection, resultado);
+                    });
+                }
+            }
+            
+            return {
+                success: true,
+                output: resultado,
+                stats: {
+                    charactersProcessed: text.length
+                }
+            };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
 
     private openUI(): void {

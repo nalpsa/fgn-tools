@@ -1,5 +1,4 @@
-import * as vscode from 'vscode';
-import { ITool, ToolCategory, ICategoryMetadata } from '../interfaces/tool.interface';
+import { ICategoryMetadata, ITool, ToolCategory, ToolResult } from '../interfaces/tool.interface';
 
 /**
  * Serviço responsável por gerenciar o registro e acesso às ferramentas
@@ -104,20 +103,37 @@ export class ToolManagerService {
     /**
      * Executa uma ferramenta pelo ID
      */
-    public async executeTool(id: string): Promise<void> {
-        const tool = this.getTool(id);
-        
+    async executeTool(toolId: string, input: any): Promise<ToolResult> {
+        const tool = this.getTool(toolId);
         if (!tool) {
-            vscode.window.showErrorMessage(`Tool "${id}" not found!`);
-            return;
+            console.error(`❌ Ferramenta não encontrada: ${toolId}`);
+            return {
+                success: false,
+                error: `Ferramenta não encontrada: ${toolId}`
+            };
         }
 
         try {
-            await tool.activate();
+            console.log(`🎯 Executando tool: ${tool.name} (${toolId})`);
+            console.log(`📁 Input recebido:`, {
+                selections: input.selections?.length || 0,
+                workspacePath: input.workspacePath
+            });
+            
+            if (input.selections) {
+                input.selections.forEach((selection: any, index: number) => {
+                    console.log(`   [${index}] ${selection.name} (${selection.type}) - ${selection.path}`);
+                });
+            }
+            
+            return await tool.execute(input);
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Error executing tool "${tool.name}": ${errorMessage}`);
-            console.error(`Error executing tool ${id}:`, error);
+            console.error(`❌ Erro executando ${tool.name}:`, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: `Erro interno: ${errorMessage}`
+            };
         }
     }
 
@@ -138,35 +154,35 @@ export class ToolManagerService {
         metadata.set(ToolCategory.CODE, {
             id: ToolCategory.CODE,
             name: '💻 Ferramentas de Código',
-            icon: 'code',
+            icon: '💻',
             description: 'Manipulação e análise de código fonte'
         });
 
         metadata.set(ToolCategory.TEXT, {
             id: ToolCategory.TEXT,
             name: '📝 Ferramentas de Texto',
-            icon: 'file-text',
+            icon: '📝',
             description: 'Processamento e transformação de texto'
         });
 
         metadata.set(ToolCategory.FILE, {
             id: ToolCategory.FILE,
             name: '📁 Ferramentas de Arquivo',
-            icon: 'folder',
+            icon: '📁',
             description: 'Operações com arquivos e diretórios'
         });
 
-        metadata.set(ToolCategory.FORMATTERS, {
-            id: ToolCategory.FORMATTERS,
+        metadata.set(ToolCategory.FORMAT, {
+            id: ToolCategory.FORMAT,
             name: '🎨 Formatadores',
-            icon: 'paintcan',
+            icon: '🎨',
             description: 'Formatação e beautification de código'
         });
 
         metadata.set(ToolCategory.OTHER, {
             id: ToolCategory.OTHER,
             name: '🔧 Outras Ferramentas',
-            icon: 'tools',
+            icon: '🔧',
             description: 'Utilitários diversos'
         });
 

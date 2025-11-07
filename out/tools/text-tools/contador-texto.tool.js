@@ -45,12 +45,47 @@ class ContadorTextoTool {
         this.id = 'contador-texto';
         this.name = 'Contador de Texto';
         this.description = 'Analisa texto e fornece estatísticas: caracteres, palavras, linhas';
-        this.icon = 'graph';
+        this.icon = '📊';
         this.category = tool_interface_1.ToolCategory.TEXT;
     }
-    async activate() {
-        console.log('🎯 Ativando ferramenta: Contador de Texto');
-        this.openUI();
+    async execute(input) {
+        try {
+            let text = '';
+            if (input && input.text) {
+                // Se o texto foi fornecido diretamente no input
+                text = input.text;
+            }
+            else {
+                // Tentar pegar do editor ativo
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    text = editor.document.getText();
+                }
+                else {
+                    // Abrir a UI se não há texto disponível
+                    this.openUI();
+                    return {
+                        success: true,
+                        output: 'UI aberta para análise de texto'
+                    };
+                }
+            }
+            const stats = this.analyzeText(text);
+            return {
+                success: true,
+                output: stats,
+                stats: {
+                    charactersProcessed: text.length
+                }
+            };
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
     openUI() {
         if (this.panel) {

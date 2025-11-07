@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 import { ToolManagerService } from './core/services/tool-manager.service';
 import { ToolboxUIService } from './features/toolbox/toolbox.ui.service';
-import { RemoverTodasLinhasVaziasTool } from './tools/file-tools/remover-todas-linhas-vazias.tool';
+import { RemoveAllEmptyLinesTool } from './tools/file-tools/remover-todas-linhas-vazias.tool';
 
 // Importar todas as ferramentas
 // Ferramentas de Arquivo
 import { AjustarLinhasTool } from './tools/file-tools/ajustar-linhas.tool';
 
 // Ferramentas de Texto
-import { TransformadorCaseTool } from './tools/text-tools/transformador-case.tool';
 import { ContadorTextoTool } from './tools/text-tools/contador-texto.tool';
+import { TransformadorCaseTool } from './tools/text-tools/transformador-case.tool';
 
 // Ferramentas de Código
 import { AnalisadorComplexidadeTool } from './tools/code-tools/analisador-complexidade.tool';
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Inicializa os serviços principais
     const toolManager = ToolManagerService.getInstance();
-    const toolboxUI = ToolboxUIService.getInstance();
+    const toolboxUI = ToolboxUIService.getInstance(context);
 
     // Registra todas as ferramentas disponíveis
     registerAllTools(toolManager);
@@ -71,7 +71,7 @@ function registerAllTools(toolManager: ToolManagerService): void {
     const tools = [
         // Ferramentas de Arquivo
         new AjustarLinhasTool(),
-        new RemoverTodasLinhasVaziasTool(),
+        new RemoveAllEmptyLinesTool(),
 
         // Ferramentas de Texto
         new TransformadorCaseTool(),

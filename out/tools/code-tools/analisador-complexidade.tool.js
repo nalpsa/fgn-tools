@@ -44,12 +44,29 @@ class AnalisadorComplexidadeTool {
         this.id = 'analisador-complexidade';
         this.name = 'Analisador de Complexidade';
         this.description = 'Analisa a complexidade ciclomática do código';
-        this.icon = 'graph-line';
+        this.icon = '🔍';
         this.category = tool_interface_1.ToolCategory.CODE;
     }
-    async activate() {
-        vscode.window.showInformationMessage('Analisador de Complexidade - Em desenvolvimento');
-        // Implementação futura
+    async execute(input) {
+        try {
+            // Implementação básica - será expandida posteriormente
+            vscode.window.showInformationMessage('Analisador de Complexidade - Em desenvolvimento');
+            return {
+                success: true,
+                output: 'Ferramenta em desenvolvimento',
+                stats: {
+                    filesProcessed: 0,
+                    linesChanged: 0
+                }
+            };
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
 }
 exports.AnalisadorComplexidadeTool = AnalisadorComplexidadeTool;

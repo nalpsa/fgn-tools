@@ -44,12 +44,58 @@ class FormatadorJSONTool {
         this.id = 'formatador-json';
         this.name = 'Formatador JSON';
         this.description = 'Formata e valida documentos JSON';
-        this.icon = 'json';
-        this.category = tool_interface_1.ToolCategory.FORMATTERS;
+        this.icon = '📝';
+        this.category = tool_interface_1.ToolCategory.FORMAT;
     }
-    async activate() {
-        vscode.window.showInformationMessage('Formatador JSON - Em desenvolvimento');
-        // Implementação futura
+    async execute(input) {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const document = editor.document;
+                const text = document.getText();
+                try {
+                    const parsed = JSON.parse(text);
+                    const formatted = JSON.stringify(parsed, null, 2);
+                    // Aplicar a formatação
+                    const edit = new vscode.WorkspaceEdit();
+                    const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(text.length));
+                    edit.replace(document.uri, fullRange, formatted);
+                    await vscode.workspace.applyEdit(edit);
+                    await document.save();
+                    vscode.window.showInformationMessage('✅ JSON formatado com sucesso!');
+                    return {
+                        success: true,
+                        output: 'JSON formatado com sucesso',
+                        stats: {
+                            filesProcessed: 1,
+                            linesChanged: 0
+                        }
+                    };
+                }
+                catch (parseError) {
+                    const errorMsg = 'JSON inválido: ' + (parseError instanceof Error ? parseError.message : String(parseError));
+                    vscode.window.showErrorMessage(errorMsg);
+                    return {
+                        success: false,
+                        error: errorMsg
+                    };
+                }
+            }
+            else {
+                vscode.window.showErrorMessage('Nenhum editor ativo');
+                return {
+                    success: false,
+                    error: 'Nenhum editor ativo'
+                };
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
 }
 exports.FormatadorJSONTool = FormatadorJSONTool;

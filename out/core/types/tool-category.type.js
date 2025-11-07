@@ -32,7 +32,7 @@ exports.CATEGORY_CONFIG = {
         description: 'Operações com arquivos e diretórios',
         order: 3
     },
-    [tool_interface_1.ToolCategory.FORMATTERS]: {
+    [tool_interface_1.ToolCategory.FORMAT]: {
         displayName: '🎨 Formatadores',
         icon: 'paintcan',
         description: 'Formatação e beautification de código',

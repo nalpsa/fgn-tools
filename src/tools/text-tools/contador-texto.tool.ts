@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ITool, ToolCategory } from '../../core/interfaces/tool.interface';
+import { ITool, ToolCategory, ToolResult } from '../../core/interfaces/tool.interface';
 
 /**
  * Ferramenta para analisar texto e fornecer estatísticas detalhadas
@@ -9,14 +9,49 @@ export class ContadorTextoTool implements ITool {
     public readonly id = 'contador-texto';
     public readonly name = 'Contador de Texto';
     public readonly description = 'Analisa texto e fornece estatísticas: caracteres, palavras, linhas';
-    public readonly icon = 'graph';
+    public readonly icon = '📊';
     public readonly category = ToolCategory.TEXT;
 
     private panel: vscode.WebviewPanel | undefined;
 
-    public async activate(): Promise<void> {
-        console.log('🎯 Ativando ferramenta: Contador de Texto');
-        this.openUI();
+    async execute(input: any): Promise<ToolResult> {
+        try {
+            let text = '';
+            
+            if (input && input.text) {
+                // Se o texto foi fornecido diretamente no input
+                text = input.text;
+            } else {
+                // Tentar pegar do editor ativo
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    text = editor.document.getText();
+                } else {
+                    // Abrir a UI se não há texto disponível
+                    this.openUI();
+                    return {
+                        success: true,
+                        output: 'UI aberta para análise de texto'
+                    };
+                }
+            }
+            
+            const stats = this.analyzeText(text);
+            
+            return {
+                success: true,
+                output: stats,
+                stats: {
+                    charactersProcessed: text.length
+                }
+            };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
 
     private openUI(): void {

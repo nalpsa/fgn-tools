@@ -34,9 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AjustarLinhasTool = void 0;
-const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const vscode = __importStar(require("vscode"));
 const tool_interface_1 = require("../../core/interfaces/tool.interface");
 /**
  * Ferramenta para remover linhas vazias duplicadas em arquivos
@@ -47,12 +47,54 @@ class AjustarLinhasTool {
         this.id = 'ajustar-linhas';
         this.name = 'Ajustar Linhas Vazias';
         this.description = 'Remove linhas vazias duplicadas mantendo apenas 1 linha entre blocos';
-        this.icon = 'whole-word';
+        this.icon = '🪄';
         this.category = tool_interface_1.ToolCategory.FILE;
     }
-    async activate() {
-        console.log('🎯 Ativando ferramenta: Ajustar Linhas');
-        this.openUI();
+    async execute(input) {
+        try {
+            console.log('🎯 AjustarLinhasTool executando...', input);
+            // Se recebemos seleções específicas, processamos
+            if (input && input.selections && input.workspacePath) {
+                console.log('📁 Processando seleções recebidas...');
+                return await this.processarSelecao(input);
+            }
+            else {
+                // Caso contrário, abrimos a UI para seleção interativa
+                console.log('🖥️ Abrindo UI para seleção...');
+                this.openUI();
+                return {
+                    success: true,
+                    output: 'UI aberta para seleção de arquivos'
+                };
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('❌ Erro no AjustarLinhasTool:', errorMessage);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
+    }
+    async processarSelecao(input) {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return {
+                success: false,
+                error: 'Nenhum workspace aberto'
+            };
+        }
+        const workspacePath = workspaceFolders[0].uri.fsPath;
+        const resultado = await this.processarSelecionados(input.selections, workspacePath);
+        return {
+            success: true,
+            output: resultado,
+            stats: {
+                filesProcessed: resultado.arquivos,
+                linesChanged: resultado.linhasRemovidas
+            }
+        };
     }
     openUI() {
         if (this.panel) {
@@ -82,7 +124,7 @@ class AjustarLinhasTool {
                     });
                     break;
                 case 'processarSelecionados':
-                    const resultado = await this.processarSelecionados(message.selecionados);
+                    const resultado = await this.processarSelecionadosInterface(message.selecionados);
                     this.panel?.webview.postMessage({
                         command: 'processamentoConcluido',
                         resultado
@@ -90,6 +132,44 @@ class AjustarLinhasTool {
                     break;
             }
         });
+    }
+    async processarSelecionadosInterface(selecionados) {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return { arquivos: 0, linhasRemovidas: 0, arquivosProcessados: [] };
+        }
+        const workspacePath = workspaceFolders[0].uri.fsPath;
+        return await this.processarSelecionados(selecionados, workspacePath);
+    }
+    async processarSelecionados(selecionados, workspacePath) {
+        let totalArquivos = 0;
+        let totalLinhasRemovidas = 0;
+        const arquivosProcessados = [];
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Ajustando linhas vazias...",
+            cancellable: false
+        }, async (progress) => {
+            // Coletar todos os arquivos selecionados
+            const arquivosParaProcessar = this.coletarArquivosSelecionados(selecionados);
+            for (const arquivo of arquivosParaProcessar) {
+                const fullPath = path.join(workspacePath, arquivo.caminho);
+                const resultado = await this.processarArquivo(fullPath);
+                if (resultado && resultado.linhasRemovidas > 0) {
+                    totalArquivos++;
+                    totalLinhasRemovidas += resultado.linhasRemovidas;
+                    arquivosProcessados.push(arquivo.caminho);
+                }
+                progress.report({
+                    message: `Processados: ${totalArquivos} de ${arquivosParaProcessar.length} arquivos`
+                });
+            }
+        });
+        return {
+            arquivos: totalArquivos,
+            linhasRemovidas: totalLinhasRemovidas,
+            arquivosProcessados
+        };
     }
     async listarPastas() {
         const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -138,41 +218,6 @@ class AjustarLinhasTool {
             console.error('Erro ao listar:', error);
         }
         return itens;
-    }
-    async processarSelecionados(selecionados) {
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            return { arquivos: 0, linhasRemovidas: 0, arquivosProcessados: [] };
-        }
-        const workspacePath = workspaceFolders[0].uri.fsPath;
-        let totalArquivos = 0;
-        let totalLinhasRemovidas = 0;
-        const arquivosProcessados = [];
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "Ajustando linhas vazias...",
-            cancellable: false
-        }, async (progress) => {
-            // Coletar todos os arquivos selecionados
-            const arquivosParaProcessar = this.coletarArquivosSelecionados(selecionados);
-            for (const arquivo of arquivosParaProcessar) {
-                const fullPath = path.join(workspacePath, arquivo.caminho);
-                const resultado = await this.processarArquivo(fullPath);
-                if (resultado && resultado.linhasRemovidas > 0) {
-                    totalArquivos++;
-                    totalLinhasRemovidas += resultado.linhasRemovidas;
-                    arquivosProcessados.push(arquivo.caminho);
-                }
-                progress.report({
-                    message: `Processados: ${totalArquivos} de ${arquivosParaProcessar.length} arquivos`
-                });
-            }
-        });
-        return {
-            arquivos: totalArquivos,
-            linhasRemovidas: totalLinhasRemovidas,
-            arquivosProcessados
-        };
     }
     coletarArquivosSelecionados(itens) {
         const arquivos = [];

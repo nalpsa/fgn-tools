@@ -19,8 +19,7 @@ export interface ITool {
     readonly description: string;
 
     /**
-     * Ícone da ferramenta (usando VS Code Codicons)
-     * @see https://microsoft.github.io/vscode-codicons/dist/codicon.html
+     * Ícone da ferramenta (usando emoji ou VS Code Codicons)
      */
     readonly icon: string;
 
@@ -30,21 +29,52 @@ export interface ITool {
     readonly category: ToolCategory;
 
     /**
-     * Ativa e executa a ferramenta
-     * Princípio da Responsabilidade Única (SRP): cada ferramenta gerencia sua própria ativação
+     * Executa a ferramenta com os dados fornecidos
      */
-    activate(): Promise<void>;
+    execute(input: any): Promise<ToolResult>;
+}
+
+/**
+ * Resultado da execução de uma ferramenta
+ */
+export interface ToolResult {
+    success: boolean;
+    output?: any;
+    error?: string;
+    stats?: { 
+        filesProcessed?: number; 
+        linesChanged?: number;
+        charactersProcessed?: number;
+    };
+}
+
+/**
+ * Input para ferramentas que trabalham com seleção de arquivos
+ */
+export interface FileSelectionInput {
+    selections: FileSelection[];
+    workspacePath: string;
+}
+
+/**
+ * Representa um arquivo ou pasta selecionado
+ */
+export interface FileSelection {
+    name: string;
+    path: string;
+    type: 'file' | 'folder';
+    selected: boolean;
 }
 
 /**
  * Categorias disponíveis para organização das ferramentas
  */
 export enum ToolCategory {
-    CODE = 'code-tools',
-    TEXT = 'text-tools',
-    FILE = 'file-tools',
-    FORMATTERS = 'formatters',
-    OTHER = 'other-tools'
+    CODE = 'code',
+    TEXT = 'text',
+    FILE = 'file',
+    FORMAT = 'format', // Mudei de FORMATTERS para FORMAT
+    OTHER = 'other'
 }
 
 /**

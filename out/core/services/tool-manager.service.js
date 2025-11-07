@@ -1,40 +1,6 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ToolManagerService = void 0;
-const vscode = __importStar(require("vscode"));
 const tool_interface_1 = require("../interfaces/tool.interface");
 /**
  * Serviço responsável por gerenciar o registro e acesso às ferramentas
@@ -122,19 +88,35 @@ class ToolManagerService {
     /**
      * Executa uma ferramenta pelo ID
      */
-    async executeTool(id) {
-        const tool = this.getTool(id);
+    async executeTool(toolId, input) {
+        const tool = this.getTool(toolId);
         if (!tool) {
-            vscode.window.showErrorMessage(`Tool "${id}" not found!`);
-            return;
+            console.error(`❌ Ferramenta não encontrada: ${toolId}`);
+            return {
+                success: false,
+                error: `Ferramenta não encontrada: ${toolId}`
+            };
         }
         try {
-            await tool.activate();
+            console.log(`🎯 Executando tool: ${tool.name} (${toolId})`);
+            console.log(`📁 Input recebido:`, {
+                selections: input.selections?.length || 0,
+                workspacePath: input.workspacePath
+            });
+            if (input.selections) {
+                input.selections.forEach((selection, index) => {
+                    console.log(`   [${index}] ${selection.name} (${selection.type}) - ${selection.path}`);
+                });
+            }
+            return await tool.execute(input);
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            vscode.window.showErrorMessage(`Error executing tool "${tool.name}": ${errorMessage}`);
-            console.error(`Error executing tool ${id}:`, error);
+            console.error(`❌ Erro executando ${tool.name}:`, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: `Erro interno: ${errorMessage}`
+            };
         }
     }
     /**
@@ -152,31 +134,31 @@ class ToolManagerService {
         metadata.set(tool_interface_1.ToolCategory.CODE, {
             id: tool_interface_1.ToolCategory.CODE,
             name: '💻 Ferramentas de Código',
-            icon: 'code',
+            icon: '💻',
             description: 'Manipulação e análise de código fonte'
         });
         metadata.set(tool_interface_1.ToolCategory.TEXT, {
             id: tool_interface_1.ToolCategory.TEXT,
             name: '📝 Ferramentas de Texto',
-            icon: 'file-text',
+            icon: '📝',
             description: 'Processamento e transformação de texto'
         });
         metadata.set(tool_interface_1.ToolCategory.FILE, {
             id: tool_interface_1.ToolCategory.FILE,
             name: '📁 Ferramentas de Arquivo',
-            icon: 'folder',
+            icon: '📁',
             description: 'Operações com arquivos e diretórios'
         });
-        metadata.set(tool_interface_1.ToolCategory.FORMATTERS, {
-            id: tool_interface_1.ToolCategory.FORMATTERS,
+        metadata.set(tool_interface_1.ToolCategory.FORMAT, {
+            id: tool_interface_1.ToolCategory.FORMAT,
             name: '🎨 Formatadores',
-            icon: 'paintcan',
+            icon: '🎨',
             description: 'Formatação e beautification de código'
         });
         metadata.set(tool_interface_1.ToolCategory.OTHER, {
             id: tool_interface_1.ToolCategory.OTHER,
             name: '🔧 Outras Ferramentas',
-            icon: 'tools',
+            icon: '🔧',
             description: 'Utilitários diversos'
         });
         return metadata;

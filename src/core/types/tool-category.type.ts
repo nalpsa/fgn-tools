@@ -38,7 +38,7 @@ export const CATEGORY_CONFIG = {
         description: 'Operações com arquivos e diretórios',
         order: 3
     },
-    [ToolCategory.FORMATTERS]: {
+    [ToolCategory.FORMAT]: { // Corrigido para FORMAT
         displayName: '🎨 Formatadores',
         icon: 'paintcan',
         description: 'Formatação e beautification de código',

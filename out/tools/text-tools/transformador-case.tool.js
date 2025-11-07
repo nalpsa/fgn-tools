@@ -45,12 +45,64 @@ class TransformadorCaseTool {
         this.id = 'transformador-case';
         this.name = 'Transformador de Case';
         this.description = 'Converte texto entre camelCase, snake_case, kebab-case e outros';
-        this.icon = 'symbol-text';
+        this.icon = '🔄';
         this.category = tool_interface_1.ToolCategory.TEXT;
     }
-    async activate() {
-        console.log('🎯 Ativando ferramenta: Transformador de Case');
-        this.openUI();
+    async execute(input) {
+        try {
+            let text = '';
+            let caseType = 'camelCase';
+            if (input && input.text) {
+                text = input.text;
+                caseType = input.caseType || 'camelCase';
+            }
+            else {
+                // Tentar pegar seleção do editor
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const selection = editor.selection;
+                    if (!selection.isEmpty) {
+                        text = editor.document.getText(selection);
+                    }
+                    else {
+                        text = editor.document.getText();
+                    }
+                }
+                else {
+                    // Abrir a UI se não há texto disponível
+                    this.openUI();
+                    return {
+                        success: true,
+                        output: 'UI aberta para transformação de texto'
+                    };
+                }
+            }
+            const resultado = this.transformText(text, caseType);
+            // Aplicar resultado se veio do editor
+            const editor = vscode.window.activeTextEditor;
+            if (editor && input && !input.text) {
+                const selection = editor.selection;
+                if (!selection.isEmpty) {
+                    await editor.edit(editBuilder => {
+                        editBuilder.replace(selection, resultado);
+                    });
+                }
+            }
+            return {
+                success: true,
+                output: resultado,
+                stats: {
+                    charactersProcessed: text.length
+                }
+            };
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
     }
     openUI() {
         if (this.panel) {
