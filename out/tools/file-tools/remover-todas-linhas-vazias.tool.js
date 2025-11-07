@@ -120,7 +120,7 @@ class RemoveAllEmptyLinesTool {
                 if (selection.selected) {
                     console.log(`📋 Processando: ${selection.name} (${selection.type}) - ${selection.path}`);
                     const fullPath = path.join(workspacePath, selection.path);
-                    console.log(`📁 Caminho completo: ${fullPath}`);
+                    console.log(`🔍 Caminho completo: ${fullPath}`);
                     if (selection.type === 'folder') {
                         const resultado = await this.processarPasta(fullPath);
                         totalArquivos += resultado.arquivos;
@@ -289,38 +289,58 @@ class RemoveAllEmptyLinesTool {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@latest/dist/codicon.css">
     <title>Remover Todas Linhas Vazias</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: var(--vscode-font-family);
             background: var(--vscode-editor-background);
             color: var(--vscode-editor-foreground);
             padding: 20px;
-            margin: 0;
         }
 
         h1 {
             color: var(--vscode-titleBar-activeForeground);
             margin-bottom: 10px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .description {
             color: var(--vscode-descriptionForeground);
             margin-bottom: 20px;
+            font-size: 14px;
         }
 
         .warning-box {
             background: var(--vscode-inputValidation-warningBackground);
             border: 1px solid var(--vscode-inputValidation-warningBorder);
-            border-radius: 8px;
+            border-radius: 6px;
             padding: 15px;
             margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .warning-icon {
+            color: var(--vscode-inputValidation-warningForeground);
+            font-size: 20px;
+            flex-shrink: 0;
         }
 
         .file-explorer {
             background: var(--vscode-input-background);
             border: 1px solid var(--vscode-input-border);
-            border-radius: 8px;
+            border-radius: 6px;
             padding: 15px;
             margin: 20px 0;
             max-height: 400px;
@@ -330,8 +350,14 @@ class RemoveAllEmptyLinesTool {
         .file-item {
             display: flex;
             align-items: center;
-            padding: 10px;
+            padding: 8px;
             border-bottom: 1px solid var(--vscode-input-border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .file-item:hover {
+            background: var(--vscode-list-hoverBackground);
         }
 
         .file-item:last-child {
@@ -340,12 +366,18 @@ class RemoveAllEmptyLinesTool {
 
         .file-checkbox {
             margin-right: 10px;
+            cursor: pointer;
         }
 
         .file-icon {
             margin-right: 8px;
-            width: 16px;
+            width: 20px;
             text-align: center;
+            color: var(--vscode-symbolIcon-fileForeground);
+        }
+
+        .folder-icon {
+            color: var(--vscode-symbolIcon-folderForeground);
         }
 
         .file-info {
@@ -355,11 +387,12 @@ class RemoveAllEmptyLinesTool {
         .file-name {
             color: var(--vscode-foreground);
             font-weight: 500;
+            font-size: 13px;
         }
 
         .file-path {
             color: var(--vscode-descriptionForeground);
-            font-size: 0.85em;
+            font-size: 11px;
             margin-top: 2px;
         }
 
@@ -374,13 +407,18 @@ class RemoveAllEmptyLinesTool {
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
             border: none;
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: 4px;
             cursor: pointer;
             font-family: var(--vscode-font-family);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background: var(--vscode-button-hoverBackground);
         }
 
@@ -390,20 +428,32 @@ class RemoveAllEmptyLinesTool {
             opacity: 0.6;
         }
 
-        .danger-button {
-            background: var(--vscode-inputValidation-errorBackground);
-            color: var(--vscode-inputValidation-errorForeground);
+        .secondary-button {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
         }
 
-        .danger-button:hover {
+        .secondary-button:hover:not(:disabled) {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .danger-button {
+            background: var(--vscode-inputValidation-errorBackground);
+        }
+
+        .danger-button:hover:not(:disabled) {
             background: var(--vscode-inputValidation-errorBorder);
         }
 
         .results {
             margin-top: 20px;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 6px;
             display: none;
+        }
+
+        .results.show {
+            display: block;
         }
 
         .success {
@@ -418,41 +468,79 @@ class RemoveAllEmptyLinesTool {
 
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
             color: var(--vscode-descriptionForeground);
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--vscode-progressBar-background);
+            border-top-color: var(--vscode-textLink-foreground);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .empty-message {
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
             color: var(--vscode-descriptionForeground);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            opacity: 0.5;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
-    <h1>Remover Todas Linhas Vazias</h1>
-    <p class="description">Remove completamente todas as linhas em branco</p>
+    <h1>
+        <i class="codicon codicon-trash"></i>
+        Remover Todas Linhas Vazias
+    </h1>
+    <p class="description">Remove completamente todas as linhas em branco dos arquivos selecionados</p>
     
     <div class="warning-box">
-        <strong>Atencao:</strong> Esta ferramenta removera TODAS as linhas vazias dos arquivos selecionados.
-        Esta acao nao pode ser desfeita. Recomendamos fazer backup dos arquivos antes de prosseguir.
+        <i class="codicon codicon-warning warning-icon"></i>
+        <div>
+            <strong>Atencao:</strong> Esta ferramenta removera TODAS as linhas vazias dos arquivos selecionados.
+            Esta acao nao pode ser desfeita. Recomendamos fazer backup dos arquivos antes de prosseguir.
+        </div>
     </div>
 
     <div class="file-explorer" id="fileExplorer">
         <div class="loading">
+            <div class="loading-spinner"></div>
             <p>Carregando estrutura de arquivos...</p>
         </div>
     </div>
 
     <div class="action-buttons">
-        <button id="selectAllBtn">Selecionar Tudo</button>
-        <button id="deselectAllBtn">Desmarcar Tudo</button>
-        <button id="refreshBtn">Atualizar Lista</button>
-        <button id="executeBtn" class="danger-button">Executar Remocao</button>
+        <button id="selectAllBtn" class="secondary-button">
+            <i class="codicon codicon-check-all"></i>
+            Selecionar Tudo
+        </button>
+        <button id="deselectAllBtn" class="secondary-button">
+            <i class="codicon codicon-close-all"></i>
+            Desmarcar Tudo
+        </button>
+        <button id="refreshBtn" class="secondary-button">
+            <i class="codicon codicon-refresh"></i>
+            Atualizar Lista
+        </button>
+        <button id="executeBtn" class="danger-button">
+            <i class="codicon codicon-trash"></i>
+            Executar Remocao
+        </button>
     </div>
 
     <div id="results" class="results">
-        <h3>Resultado da Execucao:</h3>
         <div id="resultContent"></div>
     </div>
 
@@ -470,24 +558,20 @@ class RemoveAllEmptyLinesTool {
             const resultsDiv = document.getElementById('results');
             const resultContent = document.getElementById('resultContent');
 
-            // Solicitar lista de arquivos ao carregar
             window.addEventListener('load', function() {
+                console.log('Webview carregada, solicitando arquivos...');
                 loadWorkspaceFiles();
             });
 
             selectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.file-checkbox');
-                for (var i = 0; i < checkboxes.length; i++) {
-                    checkboxes[i].checked = true;
-                }
+                const checkboxes = document.querySelectorAll('.file-checkbox');
+                checkboxes.forEach(cb => cb.checked = true);
                 updateExecuteButton();
             });
 
             deselectAllBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.file-checkbox');
-                for (var i = 0; i < checkboxes.length; i++) {
-                    checkboxes[i].checked = false;
-                }
+                const checkboxes = document.querySelectorAll('.file-checkbox');
+                checkboxes.forEach(cb => cb.checked = false);
                 updateExecuteButton();
             });
 
@@ -496,31 +580,19 @@ class RemoveAllEmptyLinesTool {
             });
 
             executeBtn.addEventListener('click', function() {
-                var checkboxes = document.querySelectorAll('.file-checkbox:checked');
-                var selectedFiles = [];
-                
-                for (var i = 0; i < checkboxes.length; i++) {
-                    var checkbox = checkboxes[i];
-                    selectedFiles.push({
-                        name: checkbox.getAttribute('data-name'),
-                        path: checkbox.getAttribute('data-path'),
-                        type: checkbox.getAttribute('data-type'),
-                        selected: true
-                    });
-                }
+                const selectedFiles = getSelectedFiles();
 
                 if (selectedFiles.length === 0) {
-                    showResult('Por favor, selecione pelo menos um arquivo ou pasta.', 'error');
+                    showResult('<i class="codicon codicon-error"></i> Por favor, selecione pelo menos um arquivo ou pasta.', 'error');
                     return;
                 }
 
-                var userConfirmed = confirm('ATENCAO: Esta acao nao pode ser desfeita.\\n\\nDeseja continuar?');
-                if (!userConfirmed) {
+                if (!confirm('ATENCAO: Esta acao nao pode ser desfeita.\\n\\nDeseja continuar?')) {
                     return;
                 }
 
                 executeBtn.disabled = true;
-                executeBtn.textContent = 'Processando...';
+                executeBtn.innerHTML = '<i class="codicon codicon-loading codicon-modifier-spin"></i> Processando...';
 
                 vscode.postMessage({
                     command: 'execute',
@@ -531,95 +603,115 @@ class RemoveAllEmptyLinesTool {
                 });
             });
 
+            function getSelectedFiles() {
+                const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+                const files = [];
+                
+                checkboxes.forEach(checkbox => {
+                    files.push({
+                        name: checkbox.dataset.name,
+                        path: checkbox.dataset.path,
+                        type: checkbox.dataset.type,
+                        selected: true
+                    });
+                });
+                
+                return files;
+            }
+
             function updateExecuteButton() {
-                var selectedFiles = document.querySelectorAll('.file-checkbox:checked');
-                executeBtn.disabled = selectedFiles.length === 0;
+                const selectedCount = document.querySelectorAll('.file-checkbox:checked').length;
+                executeBtn.disabled = selectedCount === 0;
             }
 
             function loadWorkspaceFiles() {
-                fileExplorer.innerHTML = '<div class="loading"><p>Carregando estrutura de arquivos...</p></div>';
+                fileExplorer.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Carregando estrutura de arquivos...</p></div>';
                 executeBtn.disabled = true;
+                
                 vscode.postMessage({
                     command: 'getWorkspaceFiles'
                 });
             }
 
             function showResult(message, type) {
-                if (!type) type = 'success';
-                resultsDiv.style.display = 'block';
-                resultsDiv.className = 'results ' + type;
+                resultsDiv.className = 'results show ' + (type || 'success');
                 resultContent.innerHTML = message;
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
 
             function renderFileExplorer(files) {
+                console.log('Renderizando', files.length, 'arquivos');
+                
                 if (!files || files.length === 0) {
-                    fileExplorer.innerHTML = '<div class="empty-message"><p>Nenhum arquivo encontrado no workspace.</p></div>';
+                    fileExplorer.innerHTML = 
+                        '<div class="empty-message">' +
+                        '<div class="empty-icon"><i class="codicon codicon-folder-opened"></i></div>' +
+                        '<p>Nenhum arquivo encontrado no workspace.</p>' +
+                        '<p style="font-size: 12px; margin-top: 10px;">Abra uma pasta no VS Code e tente novamente.</p>' +
+                        '</div>';
                     return;
                 }
 
-                var html = '';
-                for (var i = 0; i < files.length; i++) {
-                    var file = files[i];
-                    var icon = file.type === 'folder' ? '[Pasta]' : '[Arquivo]';
-                    var checked = file.selected ? 'checked' : '';
+                let html = '';
+                files.forEach(file => {
+                    const iconClass = file.type === 'folder' ? 'codicon-folder' : 'codicon-file';
+                    const iconColor = file.type === 'folder' ? 'folder-icon' : '';
+                    const checked = file.selected ? 'checked' : '';
                     
-                    html += '<div class="file-item">' +
+                    html += 
+                        '<div class="file-item">' +
                         '<input type="checkbox" class="file-checkbox" ' +
                         'data-name="' + escapeHtml(file.name) + '" ' +
                         'data-path="' + escapeHtml(file.path) + '" ' +
                         'data-type="' + escapeHtml(file.type) + '" ' + checked + '>' +
-                        '<span class="file-icon">' + icon + '</span>' +
+                        '<i class="codicon ' + iconClass + ' file-icon ' + iconColor + '"></i>' +
                         '<div class="file-info">' +
                         '<div class="file-name">' + escapeHtml(file.name) + '</div>' +
                         '<div class="file-path">' + escapeHtml(file.path) + '</div>' +
                         '</div>' +
                         '</div>';
-                }
+                });
                 
                 fileExplorer.innerHTML = html;
 
-                var checkboxes = document.querySelectorAll('.file-checkbox');
-                for (var j = 0; j < checkboxes.length; j++) {
-                    checkboxes[j].addEventListener('change', updateExecuteButton);
-                }
+                document.querySelectorAll('.file-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', updateExecuteButton);
+                });
 
                 updateExecuteButton();
             }
 
             function escapeHtml(text) {
                 if (!text) return '';
-                return text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
             window.addEventListener('message', function(event) {
-                var message = event.data;
+                const message = event.data;
+                console.log('Mensagem recebida:', message.command);
                 
                 if (message.command === 'workspaceFiles') {
-                    console.log('Arquivos recebidos:', message.files);
                     renderFileExplorer(message.files);
                 } else if (message.command === 'executionResult') {
                     executeBtn.disabled = false;
-                    executeBtn.textContent = 'Executar Remocao';
+                    executeBtn.innerHTML = '<i class="codicon codicon-trash"></i> Executar Remocao';
                     
                     if (message.result.success) {
-                        var stats = message.result.stats || {};
-                        var resultHTML = '<p>Remocao concluida com sucesso!</p>';
+                        const stats = message.result.stats || {};
+                        let resultHTML = '<p><i class="codicon codicon-check"></i> <strong>Remocao concluida com sucesso!</strong></p>';
                         
                         if (stats.filesProcessed > 0 || stats.linesChanged > 0) {
-                            resultHTML += '<p>';
+                            resultHTML += '<p style="margin-top: 10px;">';
                             if (stats.filesProcessed > 0) {
-                                resultHTML += '<strong>' + stats.filesProcessed + '</strong> arquivo(s) processado(s)';
+                                resultHTML += '<i class="codicon codicon-file"></i> <strong>' + stats.filesProcessed + '</strong> arquivo(s) processado(s)';
                             }
                             if (stats.filesProcessed > 0 && stats.linesChanged > 0) {
-                                resultHTML += ' - ';
+                                resultHTML += ' &bull; ';
                             }
                             if (stats.linesChanged > 0) {
-                                resultHTML += '<strong>' + stats.linesChanged + '</strong> linha(s) removida(s)';
+                                resultHTML += '<i class="codicon codicon-trash"></i> <strong>' + stats.linesChanged + '</strong> linha(s) removida(s)';
                             }
                             resultHTML += '</p>';
                         }
@@ -627,8 +719,8 @@ class RemoveAllEmptyLinesTool {
                         showResult(resultHTML, 'success');
                     } else {
                         showResult(
-                            '<p>Erro durante a execucao:</p>' +
-                            '<p>' + escapeHtml(message.result.error || 'Erro desconhecido') + '</p>',
+                            '<p><i class="codicon codicon-error"></i> <strong>Erro durante a execucao:</strong></p>' +
+                            '<p style="margin-top: 10px;">' + escapeHtml(message.result.error || 'Erro desconhecido') + '</p>',
                             'error'
                         );
                     }

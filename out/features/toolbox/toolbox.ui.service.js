@@ -45,18 +45,12 @@ class ToolboxUIService {
         this.toolManager = tool_manager_service_1.ToolManagerService.getInstance();
         this.categoryConfigs = this.initializeCategoryConfigs();
     }
-    /**
-     * Singleton pattern para garantir única instância
-     */
     static getInstance(context) {
         if (!ToolboxUIService.instance && context) {
             ToolboxUIService.instance = new ToolboxUIService(context);
         }
         return ToolboxUIService.instance;
     }
-    /**
-     * Abre o dashboard de ferramentas
-     */
     async openDashboard() {
         if (this.panel) {
             this.panel.reveal(vscode.ViewColumn.One);
@@ -78,13 +72,12 @@ class ToolboxUIService {
         });
         console.log('✅ Dashboard opened');
     }
-    /**
-     * Cria um modal para uma ferramenta específica
-     */
     async createToolModal(tool) {
         const panel = vscode.window.createWebviewPanel(`fgnTool-${tool.id}`, `🛠️ ${tool.name}`, vscode.ViewColumn.Beside, {
             enableScripts: true,
-            retainContextWhenHidden: true
+            retainContextWhenHidden: true,
+            // CRITICAL: Adicionar allow-modals para permitir confirm()
+            enableFindWidget: true
         });
         panel.webview.html = this.getToolHTML(tool, panel.webview);
         this.setupToolMessageHandlers(panel, tool);
@@ -100,7 +93,7 @@ class ToolboxUIService {
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>🛠️ FGN Tools - Dashboard</title>
+            <title>FGN Tools - Dashboard</title>
             <style>
                 ${this.getDashboardStyles()}
             </style>
@@ -108,9 +101,9 @@ class ToolboxUIService {
         <body>
             <div class="dashboard">
                 <header class="dashboard-header">
-                    <h1>🛠️ FGN Tools</h1>
+                    <h1>FGN Tools</h1>
                     <p>Caixa de ferramentas de desenvolvimento</p>
-                    <div class="tools-count">${tools.length} ferramentas disponíveis</div>
+                    <div class="tools-count">${tools.length} ferramentas disponiveis</div>
                 </header>
 
                 <div class="tools-grid">
@@ -130,7 +123,7 @@ class ToolboxUIService {
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>🛠️ FGN Tools - Dashboard</title>
+            <title>FGN Tools - Dashboard</title>
             <style>
                 body { 
                     font-family: var(--vscode-font-family);
@@ -150,10 +143,10 @@ class ToolboxUIService {
             </style>
         </head>
         <body>
-            <h1>🛠️ FGN Tools</h1>
+            <h1>FGN Tools</h1>
             <div class="warning">
                 <h2>Nenhuma ferramenta encontrada</h2>
-                <p>As ferramentas não foram registradas corretamente.</p>
+                <p>As ferramentas nao foram registradas corretamente.</p>
                 <p>Verifique o console do VS Code para mais detalhes.</p>
             </div>
         </body>
@@ -163,7 +156,6 @@ class ToolboxUIService {
         if (tool.id === 'remove-all-empty-lines') {
             return this.getRemoveAllEmptyLinesHTML(tool, webview);
         }
-        // HTML padrão para outras ferramentas
         return `
         <!DOCTYPE html>
         <html>
@@ -186,436 +178,679 @@ class ToolboxUIService {
         </html>`;
     }
     getRemoveAllEmptyLinesHTML(tool, webview) {
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>${tool.name}</title>
-            <style>
-                ${this.getToolStyles()}
-                .warning-box {
-                    background: var(--vscode-inputValidation-warningBackground);
-                    border: 1px solid var(--vscode-inputValidation-warningBorder);
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin: 20px 0;
-                }
-                .file-explorer {
-                    background: var(--vscode-input-background);
-                    border: 1px solid var(--vscode-input-border);
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin: 20px 0;
-                    max-height: 400px;
-                    overflow-y: auto;
-                }
-                .file-item {
-                    display: flex;
-                    align-items: center;
-                    padding: 8px 5px;
-                    border-bottom: 1px solid var(--vscode-input-border);
-                    cursor: pointer;
-                }
-                .file-item:hover {
-                    background: var(--vscode-list-hoverBackground);
-                }
-                .file-item:last-child {
-                    border-bottom: none;
-                }
-                .file-checkbox {
-                    margin-right: 10px;
-                }
-                .file-icon {
-                    margin-right: 8px;
-                    font-size: 16px;
-                    width: 20px;
-                    text-align: center;
-                }
-                .file-info {
-                    flex: 1;
-                }
-                .file-name {
-                    color: var(--vscode-foreground);
-                    font-weight: 500;
-                    font-size: 13px;
-                }
-                .file-path {
-                    color: var(--vscode-descriptionForeground);
-                    font-size: 11px;
-                    margin-top: 2px;
-                }
-                .action-buttons {
-                    display: flex;
-                    gap: 10px;
-                    margin: 20px 0;
-                    flex-wrap: wrap;
-                }
-                button {
-                    background: var(--vscode-button-background);
-                    color: var(--vscode-button-foreground);
-                    border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 13px;
-                    transition: background 0.2s;
-                }
-                button:hover {
-                    background: var(--vscode-button-hoverBackground);
-                }
-                button:disabled {
-                    background: var(--vscode-button-secondaryBackground);
-                    cursor: not-allowed;
-                    opacity: 0.6;
-                }
-                .danger-button {
-                    background: var(--vscode-inputValidation-errorBackground);
-                    color: var(--vscode-inputValidation-errorForeground);
-                }
-                .danger-button:hover {
-                    background: var(--vscode-inputValidation-errorBorder);
-                }
-                .results {
-                    margin-top: 20px;
-                    padding: 15px;
-                    border-radius: 8px;
-                    display: none;
-                }
-                .success {
-                    background: var(--vscode-inputValidation-infoBackground);
-                    border: 1px solid var(--vscode-inputValidation-infoBorder);
-                }
-                .error {
-                    background: var(--vscode-inputValidation-errorBackground);
-                    border: 1px solid var(--vscode-inputValidation-errorBorder);
-                }
-                .loading {
-                    text-align: center;
-                    padding: 20px;
-                    color: var(--vscode-descriptionForeground);
-                }
-                .folder-children {
-                    margin-left: 20px;
-                    border-left: 1px solid var(--vscode-input-border);
-                    padding-left: 10px;
-                }
-                .empty-message {
-                    text-align: center;
-                    padding: 20px;
-                    color: var(--vscode-descriptionForeground);
-                    font-style: italic;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>${tool.icon} ${tool.name}</h1>
-            <p>${tool.description}</p>
+        return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; script-src 'unsafe-inline';">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@latest/dist/codicon.css">
+    <title>${tool.name}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body { 
+            font-family: var(--vscode-font-family);
+            padding: 20px;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+        }
+        h1 { 
+            color: var(--vscode-titleBar-activeForeground); 
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        p {
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 20px;
+        }
+        .warning-box {
+            background: var(--vscode-inputValidation-warningBackground);
+            border: 1px solid var(--vscode-inputValidation-warningBorder);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .warning-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: var(--vscode-button-hoverBackground);
+        }
+        button:disabled {
+            background: var(--vscode-button-secondaryBackground);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .secondary-button {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        .secondary-button:hover:not(:disabled) {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .danger-button {
+            background: var(--vscode-inputValidation-errorBackground);
+        }
+        .danger-button:hover:not(:disabled) {
+            background: var(--vscode-inputValidation-errorBorder);
+        }
+        .file-explorer {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: block;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--vscode-input-border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .file-item.info-item {
+            cursor: default;
+            background: var(--vscode-textBlockQuote-background);
+            border-left: 3px solid var(--vscode-textLink-foreground);
+        }
+        .file-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-checkbox {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .expand-icon {
+            margin-right: 5px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-icon {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+            color: var(--vscode-symbolIcon-fileForeground);
+        }
+        .folder-icon {
+            color: var(--vscode-symbolIcon-folderForeground);
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-name {
+            color: var(--vscode-foreground);
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .file-path {
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .folder-children {
+            margin-left: 30px;
+        }
+        .folder-children.collapsed {
+            display: none;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .results.show {
+            display: block;
+        }
+        .success {
+            background: var(--vscode-inputValidation-infoBackground);
+            border: 1px solid var(--vscode-inputValidation-infoBorder);
+        }
+        .error {
+            background: var(--vscode-inputValidation-errorBackground);
+            border: 1px solid var(--vscode-inputValidation-errorBorder);
+        }
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground);
+        }
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--vscode-progressBar-background);
+            border-top-color: var(--vscode-textLink-foreground);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .empty-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground);
+        }
+        .empty-icon {
+            font-size: 48px;
+            opacity: 0.5;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>
+        <i class="codicon codicon-trash"></i>
+        ${tool.name}
+    </h1>
+    <p>${tool.description}</p>
+    
+    <div class="warning-box">
+        <i class="codicon codicon-warning warning-icon"></i>
+        <div>
+            <strong>Atencao:</strong> Esta ferramenta removera TODAS as linhas vazias dos arquivos selecionados.
+            Esta acao nao pode ser desfeita. Recomendamos fazer backup dos arquivos antes de prosseguir.
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <button id="selectAllBtn" class="secondary-button">
+            <i class="codicon codicon-check-all"></i>
+            Selecionar Tudo
+        </button>
+        <button id="deselectAllBtn" class="secondary-button">
+            <i class="codicon codicon-close-all"></i>
+            Desmarcar Tudo
+        </button>
+        <button id="expandAllBtn" class="secondary-button">
+            <i class="codicon codicon-expand-all"></i>
+            Expandir Tudo
+        </button>
+        <button id="collapseAllBtn" class="secondary-button">
+            <i class="codicon codicon-collapse-all"></i>
+            Colapsar Tudo
+        </button>
+        <button id="refreshBtn" class="secondary-button">
+            <i class="codicon codicon-refresh"></i>
+            Atualizar Lista
+        </button>
+        <button id="executeBtn" class="danger-button" disabled>
+            <i class="codicon codicon-trash"></i>
+            Executar Remocao
+        </button>
+    </div>
+
+    <div class="file-explorer" id="fileExplorer">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Carregando estrutura de arquivos...</p>
+        </div>
+    </div>
+
+    <div id="results" class="results">
+        <div id="resultContent"></div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
             
-            <div class="tool-content">
-                <div class="warning-box">
-                    <strong>⚠️ Atenção:</strong> Esta ferramenta removerá TODAS as linhas vazias dos arquivos selecionados.
-                    Esta ação não pode ser desfeita. Recomendamos fazer backup dos arquivos antes de prosseguir.
-                </div>
+            const vscode = acquireVsCodeApi();
+            
+            const fileExplorer = document.getElementById('fileExplorer');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const deselectAllBtn = document.getElementById('deselectAllBtn');
+            const expandAllBtn = document.getElementById('expandAllBtn');
+            const collapseAllBtn = document.getElementById('collapseAllBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const executeBtn = document.getElementById('executeBtn');
+            const resultsDiv = document.getElementById('results');
+            const resultContent = document.getElementById('resultContent');
 
-                <div class="file-explorer" id="fileExplorer">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        <p>Carregando estrutura de arquivos...</p>
-                    </div>
-                </div>
+            let filesData = [];
 
-                <div class="action-buttons">
-                    <button id="selectAllBtn">✅ Selecionar Tudo</button>
-                    <button id="deselectAllBtn">❌ Desmarcar Tudo</button>
-                    <button id="refreshBtn">🔄 Atualizar Lista</button>
-                    <button id="executeBtn" class="danger-button">🧹 Executar Remoção</button>
-                </div>
+            window.addEventListener('load', function() {
+                console.log('Webview carregada, solicitando arquivos...');
+                loadWorkspaceFiles();
+            });
 
-                <div id="results" class="results">
-                    <h3>Resultado da Execução:</h3>
-                    <div id="resultContent"></div>
-                </div>
-            </div>
+            selectAllBtn.addEventListener('click', function() {
+                selectAll(true);
+            });
 
-            <script>
-                const vscode = acquireVsCodeApi();
+            deselectAllBtn.addEventListener('click', function() {
+                selectAll(false);
+            });
+
+            expandAllBtn.addEventListener('click', function() {
+                expandAll(true);
+            });
+
+            collapseAllBtn.addEventListener('click', function() {
+                expandAll(false);
+            });
+
+            refreshBtn.addEventListener('click', function() {
+                loadWorkspaceFiles();
+            });
+
+            executeBtn.addEventListener('click', function() {
+                executeRemoval();
+            });
+
+            function selectAll(checked) {
+                const checkboxes = document.querySelectorAll('.file-checkbox');
+                checkboxes.forEach(cb => cb.checked = checked);
+                updateExecuteButton();
+            }
+
+            function expandAll(expand) {
+                const folders = document.querySelectorAll('.folder-children');
+                const icons = document.querySelectorAll('.expand-icon');
                 
-                // Elementos da UI
-                const fileExplorer = document.getElementById('fileExplorer');
-                const selectAllBtn = document.getElementById('selectAllBtn');
-                const deselectAllBtn = document.getElementById('deselectAllBtn');
-                const refreshBtn = document.getElementById('refreshBtn');
-                const executeBtn = document.getElementById('executeBtn');
-                const resultsDiv = document.getElementById('results');
-                const resultContent = document.getElementById('resultContent');
-
-                let currentFiles = [];
-
-                // Solicitar lista de arquivos ao carregar
-                window.addEventListener('load', () => {
-                    loadWorkspaceFiles();
-                });
-
-                // Botões de ação
-                selectAllBtn.addEventListener('click', () => {
-                    const checkboxes = document.querySelectorAll('.file-checkbox');
-                    checkboxes.forEach(checkbox => {
-                        checkbox.checked = true;
-                    });
-                    updateExecuteButton();
-                });
-
-                deselectAllBtn.addEventListener('click', () => {
-                    const checkboxes = document.querySelectorAll('.file-checkbox');
-                    checkboxes.forEach(checkbox => {
-                        checkbox.checked = false;
-                    });
-                    updateExecuteButton();
-                });
-
-                refreshBtn.addEventListener('click', () => {
-                    loadWorkspaceFiles();
-                });
-
-                // Executar a ferramenta
-                executeBtn.addEventListener('click', async () => {
-                    const selectedFiles = getSelectedFiles();
-                    
-                    if (selectedFiles.length === 0) {
-                        showResult('Por favor, selecione pelo menos um arquivo ou pasta.', 'error');
-                        return;
+                folders.forEach(folder => {
+                    if (expand) {
+                        folder.classList.remove('collapsed');
+                    } else {
+                        folder.classList.add('collapsed');
                     }
-
-                    // Confirmação adicional
-                    const userConfirmed = confirm('⚠️ ATENÇÃO: Esta ação removerá TODAS as linhas vazias dos arquivos selecionados e não pode ser desfeita.\\n\\nDeseja continuar?');
-                    if (!userConfirmed) {
-                        return;
-                    }
-
-                    executeBtn.disabled = true;
-                    executeBtn.textContent = '⏳ Removendo linhas vazias...';
-
-                    vscode.postMessage({
-                        command: 'execute',
-                        data: {
-                            selections: selectedFiles,
-                            workspacePath: '.' // Será preenchido pela extensão
-                        }
-                    });
                 });
 
-                // Obter arquivos selecionados
-                function getSelectedFiles() {
-                    const selectedFiles = [];
-                    const checkboxes = document.querySelectorAll('.file-checkbox:checked');
-                    
-                    checkboxes.forEach(checkbox => {
-                        selectedFiles.push({
-                            name: checkbox.dataset.name,
-                            path: checkbox.dataset.path,
-                            type: checkbox.dataset.type,
-                            selected: true
-                        });
-                    });
-                    
-                    return selectedFiles;
+                icons.forEach(icon => {
+                    icon.innerHTML = expand 
+                        ? '<i class="codicon codicon-chevron-down"></i>'
+                        : '<i class="codicon codicon-chevron-right"></i>';
+                });
+            }
+
+            function executeRemoval() {
+                const selectedFiles = getSelectedFiles();
+
+                if (selectedFiles.length === 0) {
+                    showResult('<i class="codicon codicon-error"></i> Por favor, selecione pelo menos um arquivo ou pasta.', 'error');
+                    return;
                 }
 
-                // Atualizar estado do botão executar
-                function updateExecuteButton() {
-                    const selectedFiles = getSelectedFiles();
-                    executeBtn.disabled = selectedFiles.length === 0;
-                }
-
-                // Carregar arquivos do workspace
-                function loadWorkspaceFiles() {
-                    fileExplorer.innerHTML = '<div class="loading"><p>Carregando estrutura de arquivos...</p></div>';
-                    vscode.postMessage({
-                        command: 'getWorkspaceFiles'
-                    });
-                }
-
-                // Mostrar resultados
-                function showResult(message, type = 'success') {
-                    resultsDiv.style.display = 'block';
-                    resultsDiv.className = 'results ' + type;
-                    resultContent.innerHTML = message;
-                    
-                    // Scroll para resultados
-                    resultsDiv.scrollIntoView({ behavior: 'smooth' });
-                }
-
-                // Renderizar explorador de arquivos
-                function renderFileExplorer(files) {
-                    currentFiles = files;
-                    
-                    if (!files || files.length === 0) {
-                        fileExplorer.innerHTML = '
-                            <div class="empty-message">
-                                <p>📁 Nenhum arquivo encontrado no workspace.</p>
-                                <p>Para usar esta ferramenta:</p>
-                                <ol>
-                                    <li>Abra uma pasta no VS Code (File → Open Folder)</li>
-                                    <li>Certifique-se de que a pasta contém arquivos de texto (.js, .ts, .html, etc.)</li>
-                                    <li>Clique em "🔄 Atualizar Lista"</li>
-                                </ol>
-                                <button onclick="loadWorkspaceFiles()" style="margin-top: 10px;">🔄 Tentar Novamente</button>
-                        </div>';
-                        return;
+                // Usar vscode.window.showWarningMessage ao invés de confirm()
+                vscode.postMessage({
+                    command: 'confirmExecution',
+                    data: {
+                        selections: selectedFiles,
+                        workspacePath: '.'
                     }
+                });
+            }
 
-                    let html = '<div class="file-structure">';
-                    
-                    // Agrupar arquivos por pasta
-                    const folders = {};
-                    files.forEach(file => {
-                        if (file.type === 'folder') {
-                            folders[file.path] = {
+            function getSelectedFiles() {
+                const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+                const files = [];
+                
+                checkboxes.forEach(checkbox => {
+                    files.push({
+                        name: checkbox.dataset.name,
+                        path: checkbox.dataset.path,
+                        type: checkbox.dataset.type,
+                        selected: true
+                    });
+                });
+                
+                return files;
+            }
+
+            function updateExecuteButton() {
+                const selectedCount = document.querySelectorAll('.file-checkbox:checked').length;
+                executeBtn.disabled = selectedCount === 0;
+            }
+
+            function loadWorkspaceFiles() {
+                fileExplorer.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Carregando estrutura de arquivos...</p></div>';
+                executeBtn.disabled = true;
+                
+                vscode.postMessage({
+                    command: 'getWorkspaceFiles'
+                });
+            }
+
+            function showResult(message, type) {
+                resultsDiv.className = 'results show ' + (type || 'success');
+                resultContent.innerHTML = message;
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            function renderFileExplorer(files) {
+                console.log('===== RENDER FILE EXPLORER =====');
+                console.log('Renderizando', files ? files.length : 0, 'arquivos');
+                console.log('fileExplorer element:', fileExplorer);
+                filesData = files;
+                
+                if (!files || files.length === 0) {
+                    console.log('Nenhum arquivo - mostrando mensagem vazia');
+                    fileExplorer.innerHTML = 
+                        '<div class="empty-message">' +
+                        '<div class="empty-icon"><i class="codicon codicon-folder-opened"></i></div>' +
+                        '<p>Nenhum arquivo encontrado no workspace.</p>' +
+                        '<p style="font-size: 12px; margin-top: 10px;">Abra uma pasta no VS Code e tente novamente.</p>' +
+                        '</div>';
+                    return;
+                }
+
+                console.log('Construindo árvore...');
+                // Organizar em estrutura de árvore
+                const tree = buildTree(files);
+                console.log('Árvore construída:', tree);
+                
+                console.log('Renderizando árvore...');
+                const treeHTML = renderTree(tree);
+                console.log('HTML gerado, length:', treeHTML.length);
+                
+                fileExplorer.innerHTML = treeHTML;
+                console.log('innerHTML definido, children count:', fileExplorer.children.length);
+
+                // Adicionar event listeners
+                setupEventListeners();
+                updateExecuteButton();
+                console.log('===== FIM RENDER =====');
+            }
+
+            function buildTree(files) {
+                console.log('buildTree: recebidos', files.length, 'arquivos');
+                console.log('Exemplo de arquivo:', files[0]);
+                
+                const tree = { children: [] };
+                const folderMap = {};
+
+                // Primeiro: identificar todas as pastas únicas
+                files.forEach(file => {
+                    if (file.type === 'folder') {
+                        if (!folderMap[file.path]) {
+                            folderMap[file.path] = {
                                 ...file,
-                                children: []
+                                children: [],
+                                expanded: false
                             };
                         }
-                    });
-
-                    // Adicionar arquivos às pastas
-                    files.forEach(file => {
-                        if (file.type === 'file') {
-                            const folderPath = file.path.includes('/') 
-                                ? file.path.substring(0, file.path.lastIndexOf('/'))
-                                : '.';
-                            
-                            if (folders[folderPath]) {
-                                folders[folderPath].children.push(file);
-                            } else {
-                                // Se não encontrou a pasta, criar uma entrada para a pasta raiz
-                                if (!folders['.']) {
-                                    folders['.'] = {
-                                        name: 'Workspace',
-                                        path: '.',
-                                        type: 'folder',
-                                        selected: true,
-                                        children: []
-                                    };
-                                }
-                                folders['.'].children.push(file);
-                            }
-                        }
-                    });
-
-                    // Renderizar estrutura
-                    Object.values(folders).forEach(folder => {
-                        html += renderFolder(folder);
-                    });
-
-                    html += '</div>';
-                    fileExplorer.innerHTML = html;
-
-                    // Adicionar event listeners aos checkboxes
-                    const checkboxes = document.querySelectorAll('.file-checkbox');
-                    checkboxes.forEach(checkbox => {
-                        checkbox.addEventListener('change', updateExecuteButton);
-                    });
-
-                    updateExecuteButton();
-                }
-
-                // Renderizar pasta e seus filhos
-                function renderFolder(folder, level = 0) {
-                    let html = \`
-                    <div class="file-item" style="margin-left: \${level * 15}px">
-                        <input type="checkbox" class="file-checkbox" 
-                            data-name="\${folder.name}" 
-                            data-path="\${folder.path}" 
-                            data-type="\${folder.type}" 
-                            \${folder.selected ? 'checked' : ''}>
-                        <span class="file-icon">📁</span>
-                        <div class="file-info">
-                            <div class="file-name">\${folder.name}</div>
-                            <div class="file-path">\${folder.path}</div>
-                        </div>
-                    </div>\`;
-
-                    if (folder.children && folder.children.length > 0) {
-                        html += '<div class="folder-children">';
-                        folder.children.forEach(child => {
-                            html += \`
-                            <div class="file-item" style="margin-left: \${(level + 1) * 15}px">
-                                <input type="checkbox" class="file-checkbox" 
-                                    data-name="\${child.name}" 
-                                    data-path="\${child.path}" 
-                                    data-type="\${child.type}" 
-                                    \${child.selected ? 'checked' : ''}>
-                                <span class="file-icon">📄</span>
-                                <div class="file-info">
-                                    <div class="file-name">\${child.name}</div>
-                                    <div class="file-path">\${child.path}</div>
-                                </div>
-                            </div>\`;
-                        });
-                        html += '</div>';
-                    }
-
-                    return html;
-                }
-
-                // Ouvir mensagens da extensão
-                window.addEventListener('message', (event) => {
-                    const message = event.data;
-                    
-                    switch (message.command) {
-                        case 'workspaceFiles':
-                            renderFileExplorer(message.files);
-                            break;
-                        
-                        case 'executionResult':
-                            executeBtn.disabled = false;
-                            executeBtn.textContent = '🧹 Executar Remoção';
-                            
-                            if (message.result.success) {
-                                const stats = message.result.stats || {};
-                                const filesText = stats.filesProcessed > 0 ? 
-                                    '<strong>' + stats.filesProcessed + '</strong> arquivo(s) processado(s)' : '';
-                                const linesText = stats.linesChanged > 0 ? 
-                                    '<strong>' + stats.linesChanged + '</strong> linha(s) removida(s)' : '';
-                                
-                                showResult(
-                                    '<p>✅ Remoção concluída com sucesso!</p>' +
-                                    '<p>' + filesText + (filesText && linesText ? ' - ' : '') + linesText + '</p>',
-                                    'success'
-                                );
-                            } else {
-                                showResult(
-                                    '<p>❌ Erro durante a execução:</p>' +
-                                    '<p>' + (message.result.error || 'Erro desconhecido') + '</p>',
-                                    'error'
-                                );
-                            }
-                            break;
                     }
                 });
 
-                // Adicionar estilo para loading spinner
-                const style = document.createElement('style');
-                style.textContent = \`
-                    .loading-spinner {
-                        width: 20px;
-                        height: 20px;
-                        border: 2px solid var(--vscode-widget-border);
-                        border-top: 2px solid var(--vscode-textLink-foreground);
-                        border-radius: 50%;
-                        animation: spin 1s linear infinite;
-                        margin: 0 auto 10px;
+                console.log('Pastas identificadas:', Object.keys(folderMap).length);
+
+                // Segundo: organizar pastas em hierarquia
+                Object.values(folderMap).forEach(folder => {
+                    const parts = folder.path.split('/');
+                    
+                    if (parts.length === 1 || folder.path === '.') {
+                        // Pasta raiz
+                        tree.children.push(folder);
+                    } else {
+                        // Subpasta - encontrar pai
+                        const parentPath = parts.slice(0, -1).join('/');
+                        const parent = folderMap[parentPath];
+                        
+                        if (parent) {
+                            parent.children.push(folder);
+                        } else {
+                            // Se não encontrou pai, adiciona na raiz
+                            tree.children.push(folder);
+                        }
                     }
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
+                });
+
+                // Terceiro: adicionar arquivos às suas pastas
+                files.forEach(file => {
+                    if (file.type === 'file') {
+                        const parts = file.path.split('/');
+                        
+                        if (parts.length === 1) {
+                            // Arquivo na raiz
+                            tree.children.push(file);
+                        } else {
+                            // Arquivo em subpasta
+                            const parentPath = parts.slice(0, -1).join('/');
+                            const parent = folderMap[parentPath];
+                            
+                            if (parent) {
+                                parent.children.push(file);
+                            } else {
+                                // Se não encontrou pasta pai, adiciona na raiz
+                                tree.children.push(file);
+                            }
+                        }
                     }
-                \`;
-                document.head.appendChild(style);
-            </script>
-        </body>
-        </html>`;
+                });
+
+                console.log('Árvore final - children na raiz:', tree.children.length);
+                return tree;
+            }
+
+            function renderTree(node, level = 0) {
+                console.log('renderTree: level=', level, 'children=', node.children ? node.children.length : 0);
+                let html = '';
+                
+                if (node.children && node.children.length > 0) {
+                    // No nível 0 (raiz), mostrar apenas pastas e limitar arquivos
+                    const MAX_FILES_ROOT = 20;
+                    let fileCount = 0;
+                    let filesSkipped = 0;
+                    
+                    node.children.forEach((child, index) => {
+                        console.log('  [' + index + '] Renderizando:', child.type, child.name);
+                        
+                        if (child.type === 'folder') {
+                            html += renderFolder(child, level);
+                        } else if (child.type === 'file') {
+                            // No nível raiz, limitar arquivos exibidos
+                            if (level === 0) {
+                                if (fileCount < MAX_FILES_ROOT) {
+                                    html += renderFile(child, level);
+                                    fileCount++;
+                                } else {
+                                    filesSkipped++;
+                                }
+                            } else {
+                                html += renderFile(child, level);
+                            }
+                        } else {
+                            console.warn('  Tipo desconhecido:', child.type);
+                        }
+                    });
+                    
+                    // Mostrar aviso se arquivos foram omitidos
+                    if (filesSkipped > 0) {
+                        html += '<div class="file-item info-item" style="padding-left: ' + (level * 20) + 'px">' +
+                            '<i class="codicon codicon-info"></i>' +
+                            '<span style="margin-left: 10px; color: var(--vscode-descriptionForeground); font-size: 12px;">' +
+                            filesSkipped + ' arquivo(s) oculto(s) na raiz. Use as pastas para organizar.</span>' +
+                            '</div>';
+                    }
+                } else {
+                    console.log('renderTree: SEM CHILDREN para renderizar!');
+                }
+
+                return html;
+            }
+
+            function renderFolder(folder, level) {
+                const indent = level * 20;
+                const hasChildren = folder.children && folder.children.length > 0;
+                const expandIcon = hasChildren 
+                    ? '<span class="expand-icon" data-path="' + escapeHtml(folder.path) + '"><i class="codicon codicon-chevron-right"></i></span>'
+                    : '<span style="width: 16px; display: inline-block;"></span>';
+
+                let html = 
+                    '<div class="file-item" style="padding-left: ' + indent + 'px">' +
+                    expandIcon +
+                    '<input type="checkbox" class="file-checkbox folder-checkbox" ' +
+                    'data-name="' + escapeHtml(folder.name) + '" ' +
+                    'data-path="' + escapeHtml(folder.path) + '" ' +
+                    'data-type="folder" ' +
+                    (folder.selected ? 'checked' : '') + '>' +
+                    '<i class="codicon codicon-folder file-icon folder-icon"></i>' +
+                    '<div class="file-info">' +
+                    '<div class="file-name">' + escapeHtml(folder.name) + '</div>' +
+                    '<div class="file-path">' + escapeHtml(folder.path) + '</div>' +
+                    '</div>' +
+                    '</div>';
+
+                if (hasChildren) {
+                    html += '<div class="folder-children collapsed" data-parent="' + escapeHtml(folder.path) + '">';
+                    html += renderTree(folder, level + 1);
+                    html += '</div>';
+                }
+
+                return html;
+            }
+
+            function renderFile(file, level) {
+                const indent = level * 20;
+                return '<div class="file-item" style="padding-left: ' + indent + 'px">' +
+                    '<span style="width: 16px; display: inline-block; margin-right: 5px;"></span>' +
+                    '<input type="checkbox" class="file-checkbox" ' +
+                    'data-name="' + escapeHtml(file.name) + '" ' +
+                    'data-path="' + escapeHtml(file.path) + '" ' +
+                    'data-type="file" ' +
+                    (file.selected ? 'checked' : '') + '>' +
+                    '<i class="codicon codicon-file file-icon"></i>' +
+                    '<div class="file-info">' +
+                    '<div class="file-name">' + escapeHtml(file.name) + '</div>' +
+                    '<div class="file-path">' + escapeHtml(file.path) + '</div>' +
+                    '</div>' +
+                    '</div>';
+            }
+
+            function setupEventListeners() {
+                // Expand/collapse folders
+                document.querySelectorAll('.expand-icon').forEach(icon => {
+                    icon.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const path = this.dataset.path;
+                        const children = document.querySelector('.folder-children[data-parent="' + path + '"]');
+                        const iconEl = this.querySelector('i');
+                        
+                        if (children) {
+                            children.classList.toggle('collapsed');
+                            iconEl.className = children.classList.contains('collapsed')
+                                ? 'codicon codicon-chevron-right'
+                                : 'codicon codicon-chevron-down';
+                        }
+                    });
+                });
+
+                // Folder checkbox: select/deselect all children
+                document.querySelectorAll('.folder-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const path = this.dataset.path;
+                        const children = document.querySelector('.folder-children[data-parent="' + path + '"]');
+                        
+                        if (children) {
+                            const childCheckboxes = children.querySelectorAll('.file-checkbox');
+                            childCheckboxes.forEach(cb => {
+                                cb.checked = this.checked;
+                            });
+                        }
+                        
+                        updateExecuteButton();
+                    });
+                });
+
+                // File checkbox
+                document.querySelectorAll('.file-checkbox:not(.folder-checkbox)').forEach(checkbox => {
+                    checkbox.addEventListener('change', updateExecuteButton);
+                });
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            window.addEventListener('message', function(event) {
+                const message = event.data;
+                console.log('Mensagem recebida:', message.command);
+                
+                if (message.command === 'workspaceFiles') {
+                    renderFileExplorer(message.files);
+                } else if (message.command === 'executionStarted') {
+                    executeBtn.disabled = true;
+                    executeBtn.innerHTML = '<i class="codicon codicon-loading codicon-modifier-spin"></i> Processando...';
+                } else if (message.command === 'executionResult') {
+                    executeBtn.disabled = false;
+                    executeBtn.innerHTML = '<i class="codicon codicon-trash"></i> Executar Remocao';
+                    
+                    if (message.result.success) {
+                        const stats = message.result.stats || {};
+                        let resultHTML = '<p><i class="codicon codicon-check"></i> <strong>Remocao concluida com sucesso!</strong></p>';
+                        
+                        if (stats.filesProcessed > 0 || stats.linesChanged > 0) {
+                            resultHTML += '<p style="margin-top: 10px;">';
+                            if (stats.filesProcessed > 0) {
+                                resultHTML += '<i class="codicon codicon-file"></i> <strong>' + stats.filesProcessed + '</strong> arquivo(s) processado(s)';
+                            }
+                            if (stats.filesProcessed > 0 && stats.linesChanged > 0) {
+                                resultHTML += ' &bull; ';
+                            }
+                            if (stats.linesChanged > 0) {
+                                resultHTML += '<i class="codicon codicon-trash"></i> <strong>' + stats.linesChanged + '</strong> linha(s) removida(s)';
+                            }
+                            resultHTML += '</p>';
+                        }
+                        
+                        showResult(resultHTML, 'success');
+                    } else {
+                        showResult(
+                            '<p><i class="codicon codicon-error"></i> <strong>Erro durante a execucao:</strong></p>' +
+                            '<p style="margin-top: 10px;">' + escapeHtml(message.result.error || 'Erro desconhecido') + '</p>',
+                            'error'
+                        );
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>`;
     }
     getToolStyles() {
         return `
@@ -672,14 +907,14 @@ class ToolboxUIService {
         return `
         <div class="tool-card" data-tool-id="${tool.id}">
             <div class="tool-icon">
-                ${tool.icon} <!-- Emoji direto -->
+                ${tool.icon}
             </div>
             <div class="tool-info">
                 <h3 class="tool-name">${tool.name}</h3>
                 <p class="tool-description">${tool.description}</p>
             </div>
             <div class="tool-action">
-                ➡️ <!-- Emoji seta -->
+                &rarr;
             </div>
         </div>`;
     }
@@ -860,9 +1095,47 @@ class ToolboxUIService {
                         files: files
                     });
                     break;
+                case 'confirmExecution':
+                    // Mostrar diálogo de confirmação usando API do VS Code
+                    const confirmed = await vscode.window.showWarningMessage('ATENÇÃO: Esta ação removerá TODAS as linhas vazias dos arquivos selecionados e não pode ser desfeita.\n\nDeseja continuar?', { modal: true }, 'Sim, executar');
+                    if (confirmed === 'Sim, executar') {
+                        panel.webview.postMessage({
+                            command: 'executionStarted'
+                        });
+                        try {
+                            const workspaceFolders = vscode.workspace.workspaceFolders;
+                            if (!workspaceFolders || workspaceFolders.length === 0) {
+                                panel.webview.postMessage({
+                                    command: 'executionResult',
+                                    result: {
+                                        success: false,
+                                        error: 'Nenhum workspace aberto. Por favor, abra uma pasta no VS Code primeiro.'
+                                    }
+                                });
+                                return;
+                            }
+                            message.data.workspacePath = workspaceFolders[0].uri.fsPath;
+                            const result = await this.toolManager.executeTool(tool.id, message.data);
+                            panel.webview.postMessage({
+                                command: 'executionResult',
+                                result: result
+                            });
+                        }
+                        catch (error) {
+                            const errorMessage = error instanceof Error ? error.message : String(error);
+                            panel.webview.postMessage({
+                                command: 'executionResult',
+                                result: {
+                                    success: false,
+                                    error: errorMessage
+                                }
+                            });
+                        }
+                    }
+                    break;
                 case 'execute':
+                    // Fallback para compatibilidade
                     try {
-                        // Verificar se há workspace aberto
                         const workspaceFolders = vscode.workspace.workspaceFolders;
                         if (!workspaceFolders || workspaceFolders.length === 0) {
                             panel.webview.postMessage({
@@ -874,7 +1147,6 @@ class ToolboxUIService {
                             });
                             return;
                         }
-                        // Adicionar workspace path
                         message.data.workspacePath = workspaceFolders[0].uri.fsPath;
                         const result = await this.toolManager.executeTool(tool.id, message.data);
                         panel.webview.postMessage({
@@ -905,17 +1177,14 @@ class ToolboxUIService {
         const files = [];
         try {
             for (const folder of workspaceFolders) {
-                // Primeiro adiciona a pasta raiz
                 files.push({
                     name: folder.name,
                     path: '.',
                     type: 'folder',
                     selected: true
                 });
-                // Buscar arquivos recursivamente
-                const folderFiles = await vscode.workspace.findFiles('**/*', '**/node_modules/**,**/.git/**,**/out/**,**/dist/**,**/build/**,**/.vscode/**');
+                const folderFiles = await vscode.workspace.findFiles('**/*', '**/node_modules/**,**/.git/**,**/out/**,**/dist/**,**/build/**,**/.vscode/**,**/venv/**,**/.venv/**,**/env/**,**/__pycache__/**,**/.pytest_cache/**,**/coverage/**,**/.nyc_output/**');
                 console.log(`📁 Encontrados ${folderFiles.length} arquivos no workspace: ${folder.name}`);
-                // Organizar por pastas e arquivos
                 const fileStructure = this.organizeFilesByStructure(folderFiles, folder.uri.fsPath);
                 files.push(...fileStructure);
             }
@@ -933,7 +1202,6 @@ class ToolboxUIService {
             try {
                 const relativePath = vscode.workspace.asRelativePath(file);
                 const pathParts = relativePath.split('/');
-                // Adicionar pastas intermediárias
                 let currentPath = '';
                 for (let i = 0; i < pathParts.length - 1; i++) {
                     currentPath = currentPath ? `${currentPath}/${pathParts[i]}` : pathParts[i];
@@ -947,7 +1215,6 @@ class ToolboxUIService {
                         addedPaths.add(currentPath);
                     }
                 }
-                // Adicionar arquivo
                 const fileName = pathParts[pathParts.length - 1];
                 if (this.isArquivoTexto(fileName)) {
                     structure.push({
@@ -970,15 +1237,15 @@ class ToolboxUIService {
     }
     initializeCategoryConfigs() {
         const configs = new Map();
-        configs.set('code', { icon: '💻', displayName: 'Ferramentas de Código' });
-        configs.set('text', { icon: '📝', displayName: 'Ferramentas de Texto' });
-        configs.set('file', { icon: '📁', displayName: 'Ferramentas de Arquivo' });
-        configs.set('format', { icon: '🎨', displayName: 'Formatadores' });
-        configs.set('other', { icon: '🔧', displayName: 'Outras Ferramentas' });
+        configs.set('code', { icon: '', displayName: 'Ferramentas de Codigo' });
+        configs.set('text', { icon: '', displayName: 'Ferramentas de Texto' });
+        configs.set('file', { icon: '', displayName: 'Ferramentas de Arquivo' });
+        configs.set('format', { icon: '', displayName: 'Formatadores' });
+        configs.set('other', { icon: '', displayName: 'Outras Ferramentas' });
         return configs;
     }
     getCategoryConfig(category) {
-        return this.categoryConfigs.get(category) || { icon: '🔧', displayName: category };
+        return this.categoryConfigs.get(category) || { icon: '', displayName: category };
     }
 }
 exports.ToolboxUIService = ToolboxUIService;
