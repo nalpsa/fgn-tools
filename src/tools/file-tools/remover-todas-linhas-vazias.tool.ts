@@ -14,15 +14,15 @@ export class RemoveAllEmptyLinesTool implements ITool {
 
     async execute(input: any): Promise<ToolResult> {
         try {
-            // Sempre abre a UI para seleção interativa
+            // Sempre abre a UI para seleÃ§Ã£o interativa
             this.openUI();
             return {
                 success: true,
-                output: 'UI aberta para seleção de arquivos'
+                output: 'UI aberta para seleÃ§Ã£o de arquivos'
             };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error('❌ Erro no RemoveAllEmptyLinesTool:', errorMessage);
+            console.error('âŒ Erro no RemoveAllEmptyLinesTool:', errorMessage);
             return {
                 success: false,
                 error: errorMessage
@@ -38,7 +38,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
 
         this.panel = vscode.window.createWebviewPanel(
             'removeAllEmptyLines',
-            '🧹 Remover Todas Linhas Vazias',
+            'ðŸ§¹ Remover Todas Linhas Vazias',
             vscode.ViewColumn.Two,
             {
                 enableScripts: true,
@@ -89,9 +89,9 @@ export class RemoveAllEmptyLinesTool implements ITool {
 
         const workspacePath = workspaceFolders[0].uri.fsPath;
         
-        console.log(`🔧 RemoveAllEmptyLinesTool executando...`);
-        console.log(`📂 Workspace: ${workspacePath}`);
-        console.log(`📄 Seleções: ${input.selections.length}`);
+        console.log(`ðŸ”§ RemoveAllEmptyLinesTool executando...`);
+        console.log(`ðŸ“‚ Workspace: ${workspacePath}`);
+        console.log(`ðŸ“„ SeleÃ§Ãµes: ${input.selections.length}`);
         
         try {
             let totalArquivos = 0;
@@ -99,28 +99,28 @@ export class RemoveAllEmptyLinesTool implements ITool {
 
             for (const selection of input.selections) {
                 if (selection.selected) {
-                    console.log(`📋 Processando: ${selection.name} (${selection.type}) - ${selection.path}`);
+                    console.log(`ðŸ“‹ Processando: ${selection.name} (${selection.type}) - ${selection.path}`);
                     
                     const fullPath = path.join(workspacePath, selection.path);
-                    console.log(`🔍 Caminho completo: ${fullPath}`);
+                    console.log(`ðŸ” Caminho completo: ${fullPath}`);
                     
                     if (selection.type === 'folder') {
                         const resultado = await this.processarPasta(fullPath);
                         totalArquivos += resultado.arquivos;
                         totalLinhasRemovidas += resultado.linhas;
-                        console.log(`📊 Pasta processada: ${resultado.arquivos} arquivos, ${resultado.linhas} linhas removidas`);
+                        console.log(`ðŸ“Š Pasta processada: ${resultado.arquivos} arquivos, ${resultado.linhas} linhas removidas`);
                     } else {
                         const resultado = await this.processarArquivo(fullPath);
                         if (resultado) {
                             totalArquivos++;
                             totalLinhasRemovidas += resultado.linhasRemovidas;
-                            console.log(`📊 Arquivo processado: ${resultado.linhasRemovidas} linhas removidas`);
+                            console.log(`ðŸ“Š Arquivo processado: ${resultado.linhasRemovidas} linhas removidas`);
                         }
                     }
                 }
             }
 
-            console.log(`✅ Processamento concluído: ${totalArquivos} arquivos, ${totalLinhasRemovidas} linhas removidas`);
+            console.log(`âœ… Processamento concluÃ­do: ${totalArquivos} arquivos, ${totalLinhasRemovidas} linhas removidas`);
 
             return {
                 success: true,
@@ -130,7 +130,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
                 }
             };
         } catch (error) {
-            console.error(`❌ Erro no RemoveAllEmptyLinesTool:`, error);
+            console.error(`âŒ Erro no RemoveAllEmptyLinesTool:`, error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             return {
                 success: false,
@@ -142,7 +142,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
     private async getWorkspaceFiles(): Promise<any[]> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
-            console.log('❌ Nenhum workspace aberto');
+            console.log('âŒ Nenhum workspace aberto');
             return [];
         }
 
@@ -150,7 +150,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
         
         try {
             const workspaceFolder = workspaceFolders[0];
-            console.log(`📁 Workspace: ${workspaceFolder.name} (${workspaceFolder.uri.fsPath})`);
+            console.log(`ðŸ“ Workspace: ${workspaceFolder.name} (${workspaceFolder.uri.fsPath})`);
 
             // Usar findFiles para buscar arquivos
             const allFiles = await vscode.workspace.findFiles(
@@ -158,7 +158,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
                 '**/node_modules/**,**/.git/**,**/out/**,**/dist/**,**/build/**,**/.vscode/**'
             );
 
-            console.log(`📄 Total de arquivos encontrados: ${allFiles.length}`);
+            console.log(`ðŸ“„ Total de arquivos encontrados: ${allFiles.length}`);
 
             // Adicionar pasta raiz
             files.push({
@@ -174,7 +174,7 @@ export class RemoveAllEmptyLinesTool implements ITool {
                     const relativePath = vscode.workspace.asRelativePath(file);
                     const fileName = path.basename(file.fsPath);
                     
-                    // Verificar se é um arquivo de texto
+                    // Verificar se Ã© um arquivo de texto
                     if (this.isArquivoTexto(fileName)) {
                         files.push({
                             name: fileName,
@@ -184,48 +184,48 @@ export class RemoveAllEmptyLinesTool implements ITool {
                         });
                     }
                 } catch (error) {
-                    console.error(`❌ Erro ao processar arquivo ${file.fsPath}:`, error);
+                    console.error(`âŒ Erro ao processar arquivo ${file.fsPath}:`, error);
                 }
             }
 
-            console.log(`✅ Arquivos de texto encontrados: ${files.length - 1}`); // -1 para a pasta raiz
+            console.log(`âœ… Arquivos de texto encontrados: ${files.length - 1}`); // -1 para a pasta raiz
 
         } catch (error) {
-            console.error('❌ Erro ao carregar arquivos do workspace:', error);
+            console.error('âŒ Erro ao carregar arquivos do workspace:', error);
         }
 
         return files;
     }
 
     private async processarPasta(pastaPath: string): Promise<{arquivos: number, linhas: number}> {
-        console.log(`📁 Processando pasta: ${pastaPath}`);
+        console.log(`ðŸ“ Processando pasta: ${pastaPath}`);
         let arquivos = 0;
         let linhas = 0;
 
         const processarRecursivo = async (dir: string): Promise<void> => {
             try {
                 const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-                console.log(`📂 Conteúdo de ${dir}: ${entries.length} entradas`);
+                console.log(`ðŸ“‚ ConteÃºdo de ${dir}: ${entries.length} entradas`);
                 
                 for (const entry of entries) {
                     const fullPath = path.join(dir, entry.name);
                     
                     if (entry.isDirectory()) {
-                        console.log(`📁 Subpasta: ${entry.name}`);
+                        console.log(`ðŸ“ Subpasta: ${entry.name}`);
                         await processarRecursivo(fullPath);
                     } else if (this.isArquivoTexto(entry.name)) {
-                        console.log(`📄 Arquivo texto: ${entry.name}`);
+                        console.log(`ðŸ“„ Arquivo texto: ${entry.name}`);
                         const resultado = await this.processarArquivo(fullPath);
                         if (resultado) {
                             arquivos++;
                             linhas += resultado.linhasRemovidas;
                         }
                     } else {
-                        console.log(`⏭️  Ignorando: ${entry.name} (não é arquivo texto)`);
+                        console.log(`â­ï¸  Ignorando: ${entry.name} (nÃ£o Ã© arquivo texto)`);
                     }
                 }
             } catch (error) {
-                console.error(`❌ Erro ao processar pasta ${dir}:`, error);
+                console.error(`âŒ Erro ao processar pasta ${dir}:`, error);
             }
         };
 
@@ -235,27 +235,27 @@ export class RemoveAllEmptyLinesTool implements ITool {
 
     private async processarArquivo(filePath: string): Promise<{linhasRemovidas: number} | null> {
         try {
-            console.log(`📄 Processando arquivo: ${filePath}`);
+            console.log(`ðŸ“„ Processando arquivo: ${filePath}`);
             
             // Verificar se o arquivo existe
             if (!fs.existsSync(filePath)) {
-                console.error(`❌ Arquivo não existe: ${filePath}`);
+                console.error(`âŒ Arquivo nÃ£o existe: ${filePath}`);
                 return null;
             }
 
             const stats = await fs.promises.stat(filePath);
-            console.log(`📊 Tamanho do arquivo: ${stats.size} bytes`);
+            console.log(`ðŸ“Š Tamanho do arquivo: ${stats.size} bytes`);
 
             const conteudo = await fs.promises.readFile(filePath, 'utf-8');
-            console.log(`📝 Conteúdo lido: ${conteudo.length} caracteres`);
+            console.log(`ðŸ“ ConteÃºdo lido: ${conteudo.length} caracteres`);
             
             const linhas = conteudo.split('\n');
-            console.log(`📊 Linhas originais: ${linhas.length}`);
+            console.log(`ðŸ“Š Linhas originais: ${linhas.length}`);
 
             const novasLinhas: string[] = [];
             let linhasRemovidas = 0;
 
-            // LÓGICA SIMPLES: Remove TODAS as linhas vazias
+            // LÃ“GICA SIMPLES: Remove TODAS as linhas vazias
             for (const linha of linhas) {
                 if (linha.trim() !== '') {
                     novasLinhas.push(linha);
@@ -264,22 +264,22 @@ export class RemoveAllEmptyLinesTool implements ITool {
                 }
             }
 
-            console.log(`📊 Linhas após processamento: ${novasLinhas.length}`);
-            console.log(`📊 Linhas removidas: ${linhasRemovidas}`);
+            console.log(`ðŸ“Š Linhas apÃ³s processamento: ${novasLinhas.length}`);
+            console.log(`ðŸ“Š Linhas removidas: ${linhasRemovidas}`);
 
             const novoConteudo = novasLinhas.join('\n');
             
             if (linhasRemovidas > 0) {
-                console.log(`💾 Salvando arquivo: ${filePath}`);
+                console.log(`ðŸ’¾ Salvando arquivo: ${filePath}`);
                 await fs.promises.writeFile(filePath, novoConteudo, 'utf-8');
-                console.log(`✅ Arquivo salvo com sucesso`);
+                console.log(`âœ… Arquivo salvo com sucesso`);
             } else {
-                console.log(`ℹ️  Nenhuma linha vazia encontrada, arquivo não modificado`);
+                console.log(`â„¹ï¸  Nenhuma linha vazia encontrada, arquivo nÃ£o modificado`);
             }
 
             return { linhasRemovidas };
         } catch (error) {
-            console.error(`❌ Erro no arquivo ${filePath}:`, error);
+            console.error(`âŒ Erro no arquivo ${filePath}:`, error);
             return null;
         }
     }
