@@ -3,6 +3,11 @@ import { ICategoryMetadata, ITool, ToolCategory, ToolResult } from '../interface
 /**
  * Serviço responsável por gerenciar o registro e acesso às ferramentas
  * Seguindo o Princípio da Responsabilidade Única (SRP) e Princípio Aberto/Fechado (OCP)
+ * 
+ * Responsabilidade: APENAS gerenciar o catálogo de tools
+ * - Registrar tools
+ * - Recuperar tools
+ * - Organizar por categoria
  */
 export class ToolManagerService {
     private static instance: ToolManagerService;
@@ -29,7 +34,7 @@ export class ToolManagerService {
      */
     public registerTool(tool: ITool): void {
         if (this.tools.has(tool.id)) {
-            console.warn(`Tool with id "${tool.id}" is already registered. Skipping.`);
+            console.warn(`⚠️  Tool with id "${tool.id}" is already registered. Skipping.`);
             return;
         }
 
@@ -42,6 +47,7 @@ export class ToolManagerService {
      */
     public registerTools(tools: ITool[]): void {
         tools.forEach(tool => this.registerTool(tool));
+        console.log(`📦 Total tools registered: ${this.tools.size}`);
     }
 
     /**
@@ -101,48 +107,26 @@ export class ToolManagerService {
     }
 
     /**
-     * Executa uma ferramenta pelo ID
-     */
-    async executeTool(toolId: string, input: any): Promise<ToolResult> {
-        const tool = this.getTool(toolId);
-        if (!tool) {
-            console.error(`❌ Ferramenta não encontrada: ${toolId}`);
-            return {
-                success: false,
-                error: `Ferramenta não encontrada: ${toolId}`
-            };
-        }
-
-        try {
-            console.log(`🎯 Executando tool: ${tool.name} (${toolId})`);
-            console.log(`📁 Input recebido:`, {
-                selections: input.selections?.length || 0,
-                workspacePath: input.workspacePath
-            });
-            
-            if (input.selections) {
-                input.selections.forEach((selection: any, index: number) => {
-                    console.log(`   [${index}] ${selection.name} (${selection.type}) - ${selection.path}`);
-                });
-            }
-            
-            return await tool.execute(input);
-        } catch (error) {
-            console.error(`❌ Erro executando ${tool.name}:`, error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            return {
-                success: false,
-                error: `Erro interno: ${errorMessage}`
-            };
-        }
-    }
-
-    /**
      * Limpa todas as ferramentas registradas
+     * Útil para testes
      */
     public clearTools(): void {
         this.tools.clear();
         console.log('🧹 All tools cleared');
+    }
+
+    /**
+     * Obtém contagem de ferramentas
+     */
+    public getToolCount(): number {
+        return this.tools.size;
+    }
+
+    /**
+     * Verifica se uma tool existe
+     */
+    public hasTool(id: string): boolean {
+        return this.tools.has(id);
     }
 
     /**
@@ -154,35 +138,35 @@ export class ToolManagerService {
         metadata.set(ToolCategory.CODE, {
             id: ToolCategory.CODE,
             name: '💻 Ferramentas de Código',
-            icon: '💻',
+            icon: 'code',
             description: 'Manipulação e análise de código fonte'
         });
 
         metadata.set(ToolCategory.TEXT, {
             id: ToolCategory.TEXT,
             name: '📝 Ferramentas de Texto',
-            icon: '📝',
+            icon: 'file-text',
             description: 'Processamento e transformação de texto'
         });
 
         metadata.set(ToolCategory.FILE, {
             id: ToolCategory.FILE,
             name: '📁 Ferramentas de Arquivo',
-            icon: '📁',
+            icon: 'folder',
             description: 'Operações com arquivos e diretórios'
         });
 
         metadata.set(ToolCategory.FORMAT, {
             id: ToolCategory.FORMAT,
             name: '🎨 Formatadores',
-            icon: '🎨',
+            icon: 'paintcan',
             description: 'Formatação e beautification de código'
         });
 
         metadata.set(ToolCategory.OTHER, {
             id: ToolCategory.OTHER,
             name: '🔧 Outras Ferramentas',
-            icon: '🔧',
+            icon: 'tools',
             description: 'Utilitários diversos'
         });
 

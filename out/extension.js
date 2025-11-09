@@ -37,121 +37,156 @@ exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const tool_manager_service_1 = require("./core/services/tool-manager.service");
+const webview_manager_service_1 = require("./core/services/webview-manager.service");
 const toolbox_ui_service_1 = require("./features/toolbox/toolbox.ui.service");
-const remover_todas_linhas_vazias_tool_1 = require("./tools/file-tools/remover-todas-linhas-vazias.tool");
-// Importar todas as ferramentas
-// Ferramentas de Arquivo
+// Importar ferramentas
 const ajustar_linhas_tool_1 = require("./tools/file-tools/ajustar-linhas.tool");
-// Ferramentas de Texto
-const contador_texto_tool_1 = require("./tools/text-tools/contador-texto.tool");
-const transformador_case_tool_1 = require("./tools/text-tools/transformador-case.tool");
-// Ferramentas de Código
-const analisador_complexidade_tool_1 = require("./tools/code-tools/analisador-complexidade.tool");
-// Formatadores
-const formatador_json_tool_1 = require("./tools/formatters/formatador-json.tool");
+const remover_todas_linhas_vazias_tool_1 = require("./tools/file-tools/remover-todas-linhas-vazias.tool");
+// Importar outras ferramentas conforme forem criadas
+// import { TransformadorCaseTool } from './tools/text-tools/transformador-case.tool';
+// import { ContadorTextoTool } from './tools/text-tools/contador-texto.tool';
+// import { AnalisadorComplexidadeTool } from './tools/code-tools/analisador-complexidade.tool';
+// import { FormatadorJSONTool } from './tools/formatters/formatador-json.tool';
 /**
- * Função de ativação da extensão
- * Chamada quando a extensão é ativada
+ * FunÃ§Ã£o de ativaÃ§Ã£o da extensÃ£o
+ * Chamada quando a extensÃ£o Ã© ativada
+ *
+ * REFATORADO: Limpo e organizado
+ * - Inicializa serviÃ§os
+ * - Registra tools
+ * - Configura comandos
+ * - Cria status bar
  */
 function activate(context) {
-    console.log('🚀 FGN Tools está sendo ativada...');
-    // Inicializa os serviços principais
+    console.log('ðŸš€ FGN Tools estÃ¡ sendo ativada...');
+    // ============================================================
+    // INICIALIZAR SERVIÃ‡OS
+    // ============================================================
     const toolManager = tool_manager_service_1.ToolManagerService.getInstance();
+    const webviewManager = webview_manager_service_1.WebviewManagerService.getInstance();
     const toolboxUI = toolbox_ui_service_1.ToolboxUIService.getInstance(context);
-    // Registra todas as ferramentas disponíveis
+    // Inicializar webview manager com contexto
+    webviewManager.initialize(context);
+    // ============================================================
+    // REGISTRAR FERRAMENTAS
+    // ============================================================
     registerAllTools(toolManager);
-    // Registra o comando para abrir o dashboard
+    // ============================================================
+    // REGISTRAR COMANDOS
+    // ============================================================
     const openDashboardCommand = vscode.commands.registerCommand('fgnTools.openDashboard', () => {
-        console.log('📦 Abrindo dashboard...');
+        console.log('ðŸ“¦ Abrindo dashboard...');
         toolboxUI.openDashboard();
     });
-    // Cria botão na barra de status para acesso rápido
+    // ============================================================
+    // CRIAR STATUS BAR ITEM
+    // ============================================================
     const statusBarItem = createStatusBarItem();
-    // Adiciona os comandos e recursos ao contexto da extensão
+    // ============================================================
+    // REGISTRAR DISPOSABLES
+    // ============================================================
     context.subscriptions.push(openDashboardCommand, statusBarItem);
-    // Log de sucesso
-    console.log('✅ FGN Tools ativada com sucesso!');
-    console.log(`📊 Total de ferramentas registradas: ${toolManager.getAllTools().length}`);
-    // Mostra mensagem de boas-vindas (apenas na primeira vez)
-    const hasShownWelcome = context.globalState.get('fgnTools.hasShownWelcome', false);
-    if (!hasShownWelcome) {
-        showWelcomeMessage();
-        context.globalState.update('fgnTools.hasShownWelcome', true);
-    }
+    // ============================================================
+    // MENSAGEM DE BOAS-VINDAS
+    // ============================================================
+    showWelcomeMessageIfNeeded(context);
+    // ============================================================
+    // LOG DE SUCESSO
+    // ============================================================
+    const totalTools = toolManager.getToolCount();
+    console.log('âœ… FGN Tools ativada com sucesso!');
+    console.log(`ðŸ“Š Total de ferramentas registradas: ${totalTools}`);
+    console.log(`ðŸŽ¨ Categorias disponÃ­veis: ${toolManager.getAllCategoryMetadata().length}`);
 }
 /**
- * Registra todas as ferramentas disponíveis
- * Seguindo o Princípio Aberto/Fechado: fácil adicionar novas ferramentas
+ * Registra todas as ferramentas disponÃ­veis
+ * Seguindo o PrincÃ­pio Aberto/Fechado: fÃ¡cil adicionar novas ferramentas
+ *
+ * Para adicionar uma nova tool:
+ * 1. Importar a tool no topo do arquivo
+ * 2. Adicionar instÃ¢ncia no array abaixo
+ * 3. Pronto! A tool aparecerÃ¡ automaticamente no dashboard
  */
 function registerAllTools(toolManager) {
-    console.log('🔧 Registrando ferramentas...');
+    console.log('ðŸ”§ Registrando ferramentas...');
     const tools = [
-        // Ferramentas de Arquivo
+        // ========================================
+        // FERRAMENTAS DE ARQUIVO (File Tools)
+        // ========================================
         new ajustar_linhas_tool_1.AjustarLinhasTool(),
-        new remover_todas_linhas_vazias_tool_1.RemoveAllEmptyLinesTool(),
-        // Ferramentas de Texto
-        new transformador_case_tool_1.TransformadorCaseTool(),
-        new contador_texto_tool_1.ContadorTextoTool(),
-        // Ferramentas de Código
-        new analisador_complexidade_tool_1.AnalisadorComplexidadeTool(),
-        // Formatadores
-        new formatador_json_tool_1.FormatadorJSONTool(),
+        new remover_todas_linhas_vazias_tool_1.RemoverTodasLinhasVaziasTool(),
         // ========================================
-        // Adicione mais ferramentas aqui conforme forem sendo criadas:
+        // FERRAMENTAS DE TEXTO (Text Tools)
         // ========================================
-        // Ferramentas de Código:
+        // new TransformadorCaseTool(),
+        // new ContadorTextoTool(),
+        // new LoremIpsumTool(),
+        // ========================================
+        // FERRAMENTAS DE CÃ“DIGO (Code Tools)
+        // ========================================
+        // new AnalisadorComplexidadeTool(),
         // new ExtratorDependenciasTool(),
         // new GeradorDiagramasTool(),
-        // Ferramentas de Texto:
-        // new LoremIpsumTool(),
-        // Ferramentas de Arquivo:
-        // new ComparadorArquivosTool(),
-        // new ValidadorXMLTool(),
-        // new GeradorHashTool(),
-        // Formatadores:
+        // new RemoverComentariosTool(),
+        // ========================================
+        // FORMATADORES (Formatters)
+        // ========================================
+        // new FormatadorJSONTool(),
         // new FormatadorSQLTool(),
         // new OrganizadorCSSTool(),
         // new FormatadorMarkdownTool(),
-        // Outras Ferramentas:
+        // ========================================
+        // OUTRAS FERRAMENTAS (Other Tools)
+        // ========================================
         // new ConversorBaseTool(),
         // new GeradorQRCodeTool(),
         // new ManipuladorTimestampTool(),
     ];
     toolManager.registerTools(tools);
-    console.log(`✅ ${tools.length} ferramenta(s) registrada(s) com sucesso!`);
+    console.log(`âœ… ${tools.length} ferramenta(s) registrada(s) com sucesso!`);
 }
 /**
- * Cria o botão na barra de status
+ * Cria o item na barra de status
  */
 function createStatusBarItem() {
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = '$(tools) FGN Tools';
     statusBarItem.tooltip = 'Abrir caixa de ferramentas FGN Tools';
     statusBarItem.command = 'fgnTools.openDashboard';
+    statusBarItem.backgroundColor = undefined; // Cor padrÃ£o
     statusBarItem.show();
     return statusBarItem;
 }
 /**
- * Mostra mensagem de boas-vindas
+ * Mostra mensagem de boas-vindas (apenas na primeira vez)
  */
-function showWelcomeMessage() {
-    const message = 'Bem-vindo ao FGN Tools! 🛠️';
-    const action = 'Abrir Dashboard';
-    vscode.window.showInformationMessage(message, action).then(selection => {
-        if (selection === action) {
-            vscode.commands.executeCommand('fgnTools.openDashboard');
-        }
-    });
+function showWelcomeMessageIfNeeded(context) {
+    const hasShownWelcome = context.globalState.get('fgnTools.hasShownWelcome', false);
+    if (!hasShownWelcome) {
+        const message = 'ðŸ‘‹ Bem-vindo ao FGN Tools! ðŸ› ï¸';
+        const action = 'Abrir Dashboard';
+        vscode.window.showInformationMessage(message, action).then(selection => {
+            if (selection === action) {
+                vscode.commands.executeCommand('fgnTools.openDashboard');
+            }
+        });
+        // Marcar como jÃ¡ mostrado
+        context.globalState.update('fgnTools.hasShownWelcome', true);
+    }
 }
 /**
- * Função de desativação da extensão
- * Chamada quando a extensão é desativada
+ * FunÃ§Ã£o de desativaÃ§Ã£o da extensÃ£o
+ * Chamada quando a extensÃ£o Ã© desativada
  */
 function deactivate() {
-    console.log('👋 FGN Tools está sendo desativada...');
-    // Limpa recursos se necessário
+    console.log('ðŸ‘‹ FGN Tools estÃ¡ sendo desativada...');
+    // Limpar recursos
     const toolManager = tool_manager_service_1.ToolManagerService.getInstance();
+    const webviewManager = webview_manager_service_1.WebviewManagerService.getInstance();
+    // Limpar tools
     toolManager.clearTools();
-    console.log('✅ FGN Tools desativada com sucesso!');
+    // Fechar todos os webviews
+    webviewManager.disposeAll();
+    console.log('âœ… FGN Tools desativada com sucesso!');
 }
 //# sourceMappingURL=extension.js.map

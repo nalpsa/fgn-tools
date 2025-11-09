@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ToolCategory = void 0;
 /**
- * Categorias disponíveis para organização das ferramentas
+ * Categorias disponÃ­veis para organizaÃ§Ã£o das ferramentas
  */
 var ToolCategory;
 (function (ToolCategory) {
