@@ -1,4 +1,10 @@
 import { ICategoryMetadata, ITool, ToolCategory, ToolResult } from '../interfaces/tool.interface';
+import { AjustarLinhasTool } from '../../tools/file-tools/ajustar-linhas.tool';
+import { RemoverTodasLinhasVaziasTool } from '../../tools/file-tools/remover-todas-linhas-vazias.tool';
+import { QuoteConverterTool } from '../../tools/file-tools/quote-converter_tool';
+import { CommentRemoverTool } from '../../tools/file-tools/comment-remover_tool';
+import { TodoDetectorTool } from '../../tools/file-tools/todo-detector_tool';
+import { ComplexityAnalyzerTool } from '../../tools/file-tools/complexity-analyzer_tool';
 
 /**
  * Serviço responsável por gerenciar o registro e acesso às ferramentas
@@ -16,6 +22,7 @@ export class ToolManagerService {
 
     private constructor() {
         this.categoryMetadata = this.initializeCategoryMetadata();
+        this.loadTools(); // Carrega todas as ferramentas automaticamente
     }
 
     /**
@@ -29,6 +36,28 @@ export class ToolManagerService {
     }
 
     /**
+     * Carrega todas as ferramentas disponíveis
+     * Este é o único método que precisa ser modificado ao adicionar novas tools
+     */
+    private loadTools(): void {
+        console.log('🔧 Carregando ferramentas...');
+
+        // Ferramentas de Arquivo - Linhas
+        this.registerTool(new AjustarLinhasTool());
+        this.registerTool(new RemoverTodasLinhasVaziasTool());
+
+        // Ferramentas de Texto
+        this.registerTool(new QuoteConverterTool());
+        this.registerTool(new CommentRemoverTool());
+
+        // Ferramentas de Análise (Código)
+        this.registerTool(new TodoDetectorTool());
+        this.registerTool(new ComplexityAnalyzerTool());
+
+        console.log(`✅ ${this.tools.size} ferramenta(s) carregada(s) com sucesso!`);
+    }
+
+    /**
      * Registra uma nova ferramenta
      * Permite extensão sem modificação (OCP)
      */
@@ -39,7 +68,7 @@ export class ToolManagerService {
         }
 
         this.tools.set(tool.id, tool);
-        console.log(`✅ Tool registered: ${tool.name} (${tool.id})`);
+        console.log(`  ✓ ${tool.name} (${tool.id})`);
     }
 
     /**
@@ -130,37 +159,65 @@ export class ToolManagerService {
     }
 
     /**
+     * Executa uma ferramenta pelo ID
+     */
+    public async executeTool(id: string, input?: any): Promise<ToolResult> {
+        const tool = this.getTool(id);
+        
+        if (!tool) {
+            return {
+                success: false,
+                error: `Ferramenta "${id}" não encontrada`
+            };
+        }
+
+        try {
+            console.log(`🚀 Executando: ${tool.name}`);
+            const result = await tool.execute(input);
+            console.log(`✅ ${tool.name} executada com sucesso`);
+            return result;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Erro ao executar ${tool.name}:`, errorMessage);
+            return {
+                success: false,
+                error: errorMessage
+            };
+        }
+    }
+
+    /**
      * Inicializa os metadados das categorias
      */
     private initializeCategoryMetadata(): Map<ToolCategory, ICategoryMetadata> {
         const metadata = new Map<ToolCategory, ICategoryMetadata>();
 
-        metadata.set(ToolCategory.CODE, {
-            id: ToolCategory.CODE,
-            name: '💻 Ferramentas de Código',
-            icon: 'code',
-            description: 'Manipulação e análise de código fonte'
+        metadata.set(ToolCategory.FILE, {
+            id: ToolCategory.FILE,
+            name: '📂 Ferramentas de Arquivo',
+            icon: 'folder',
+            description: 'Manipulação e processamento de arquivos'
         });
 
         metadata.set(ToolCategory.TEXT, {
             id: ToolCategory.TEXT,
             name: '📝 Ferramentas de Texto',
             icon: 'file-text',
-            description: 'Processamento e transformação de texto'
+            description: 'Transformação e formatação de texto'
         });
 
-        metadata.set(ToolCategory.FILE, {
-            id: ToolCategory.FILE,
-            name: '📁 Ferramentas de Arquivo',
-            icon: 'folder',
-            description: 'Operações com arquivos e diretórios'
+        metadata.set(ToolCategory.CODE, {
+            id: ToolCategory.CODE,
+            name: '💻 Ferramentas de Código',
+            icon: 'code',
+            description: 'Análise e refatoração de código'
         });
 
         metadata.set(ToolCategory.FORMAT, {
             id: ToolCategory.FORMAT,
             name: '🎨 Formatadores',
             icon: 'paintcan',
-            description: 'Formatação e beautification de código'
+            description: 'Formatação e beautification'
         });
 
         metadata.set(ToolCategory.OTHER, {
@@ -171,5 +228,27 @@ export class ToolManagerService {
         });
 
         return metadata;
+    }
+
+    /**
+     * Obtém estatísticas das ferramentas
+     */
+    public getStatistics(): {
+        total: number;
+        byCategory: Record<string, number>;
+    } {
+        const stats = {
+            total: this.tools.size,
+            byCategory: {} as Record<string, number>
+        };
+
+        Object.values(ToolCategory).forEach(category => {
+            const count = this.getToolsByCategory(category as ToolCategory).length;
+            if (count > 0) {
+                stats.byCategory[category] = count;
+            }
+        });
+
+        return stats;
     }
 }

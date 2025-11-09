@@ -100,7 +100,7 @@ export class DashboardTemplate {
             <div class="category-header">
                 <h2 class="category-title">
                     <span class="category-icon">${this.getCategoryEmoji(category.id)}</span>
-                    ${category.name}
+                    ${this.getCategoryDisplayName(category.id)}
                 </h2>
                 <p class="category-description">${category.description}</p>
             </div>
@@ -114,9 +114,13 @@ export class DashboardTemplate {
      * Renderiza um card de ferramenta
      */
     private renderToolCard(tool: ITool): string {
+        const iconHTML = this.getToolIconHTML(tool.icon);
+        
         return `
         <div class="tool-card" data-tool-id="${tool.id}" onclick="executeTool('${tool.id}')">
-            <div class="tool-icon">${tool.icon}</div>
+            <div class="tool-icon-container">
+                ${iconHTML}
+            </div>
             <div class="tool-info">
                 <h3 class="tool-name">${tool.name}</h3>
                 <p class="tool-description">${tool.description}</p>
@@ -125,6 +129,19 @@ export class DashboardTemplate {
                 <span class="action-arrow">→</span>
             </div>
         </div>`;
+    }
+
+    /**
+     * Obtém o HTML do ícone da ferramenta
+     */
+    private getToolIconHTML(icon: string): string {
+        // Se o ícone já é HTML (como um emoji), retorna direto
+        if (icon.includes('<') || icon.match(/[\u{1F300}-\u{1F9FF}]/u)) {
+            return `<span class="tool-icon">${icon}</span>`;
+        }
+        
+        // Se é um nome de ícone do Codicon
+        return `<i class="codicon codicon-${icon} tool-icon"></i>`;
     }
 
     /**
@@ -140,13 +157,27 @@ export class DashboardTemplate {
     }
 
     /**
+     * Obtém o nome de exibição da categoria
+     */
+    private getCategoryDisplayName(category: ToolCategory): string {
+        const names: Record<ToolCategory, string> = {
+            [ToolCategory.FILE]: 'Ferramentas de Arquivo',
+            [ToolCategory.TEXT]: 'Ferramentas de Texto',
+            [ToolCategory.CODE]: 'Ferramentas de Código',
+            [ToolCategory.FORMAT]: 'Formatadores',
+            [ToolCategory.OTHER]: 'Outras Ferramentas'
+        };
+        return names[category] || 'Ferramentas';
+    }
+
+    /**
      * Obtém o emoji da categoria
      */
     private getCategoryEmoji(category: ToolCategory): string {
         const emojiMap: Record<ToolCategory, string> = {
-            [ToolCategory.CODE]: '💻',
+            [ToolCategory.FILE]: '📂',
             [ToolCategory.TEXT]: '📝',
-            [ToolCategory.FILE]: '📁',
+            [ToolCategory.CODE]: '💻',
             [ToolCategory.FORMAT]: '🎨',
             [ToolCategory.OTHER]: '🔧'
         };
@@ -168,6 +199,14 @@ export class DashboardTemplate {
              */
             window.executeTool = function(toolId) {
                 console.log('Executando tool:', toolId);
+                
+                // Feedback visual
+                const card = document.querySelector(\`[data-tool-id="\${toolId}"]\`);
+                if (card) {
+                    card.classList.add('executing');
+                    setTimeout(() => card.classList.remove('executing'), 300);
+                }
+                
                 vscode.postMessage({
                     command: 'executeTool',
                     data: { toolId }
@@ -203,17 +242,41 @@ export class DashboardTemplate {
                 
                 switch (message.command) {
                     case 'dashboardRefreshed':
-                        console.log('Dashboard atualizado:', message.data.timestamp);
+                        console.log('✅ Dashboard atualizado:', message.data?.timestamp);
+                        // Recarregar página se necessário
+                        if (message.data?.reload) {
+                            location.reload();
+                        }
                         break;
                         
                     case 'toolInfo':
-                        console.log('Info da tool:', message.data);
+                        console.log('ℹ️  Info da tool:', message.data);
+                        break;
+                        
+                    case 'toolExecuted':
+                        console.log('✅ Tool executada:', message.data);
                         break;
                         
                     case 'error':
-                        console.error('Erro:', message.data);
+                        console.error('❌ Erro:', message.data);
                         break;
+                        
+                    default:
+                        console.log('📨 Mensagem recebida:', message.command);
                 }
+            });
+
+            /**
+             * Adicionar efeitos hover nos cards
+             */
+            document.querySelectorAll('.tool-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-4px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
             });
 
             /**
@@ -225,10 +288,51 @@ export class DashboardTemplate {
                     e.preventDefault();
                     refreshDashboard();
                 }
+                
+                // Ctrl/Cmd + K - Pesquisar ferramentas (futuro)
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    console.log('Pesquisa de ferramentas (em desenvolvimento)');
+                }
             });
 
-            // Log de inicialização
-            console.log('🛠️ FGN Tools Dashboard carregado');
+            /**
+             * Adicionar animação de entrada
+             */
+            function animateCardsOnLoad() {
+                const cards = document.querySelectorAll('.tool-card');
+                cards.forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 50);
+                });
+            }
+
+            /**
+             * Contar ferramentas por categoria
+             */
+            function logStatistics() {
+                const categories = document.querySelectorAll('.category-section');
+                console.log('📊 Estatísticas do Dashboard:');
+                
+                categories.forEach(section => {
+                    const categoryName = section.querySelector('.category-title')?.textContent?.trim();
+                    const toolCount = section.querySelectorAll('.tool-card').length;
+                    console.log(\`   \${categoryName}: \${toolCount} ferramenta(s)\`);
+                });
+            }
+
+            // Inicialização
+            window.addEventListener('load', function() {
+                console.log('🛠️ FGN Tools Dashboard carregado');
+                animateCardsOnLoad();
+                logStatistics();
+            });
         })();`;
     }
 }
